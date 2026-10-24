@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TREMOR</title>
+<meta name="description" content="A seismograph for the world's news: what moved since you last looked, how big it was, and how sure anyone is.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Instrument paper: cool white ground, graphite traces. Orange only for magnitude, blue only for time. One light theme by design. */
+:root{
+  --paper:#EEF1F4; --card:#FAFBFC; --line:#D3DAE2; --grid:#E3E8EE;
+  --ink:#111A24; --ink2:#3F4A57; --ink3:#5D6773; --seen:#A3ACB8;
+  --quake:#E2531A; --quake-ink:#B83C0B; --quake-bg:#C2410C;
+  --time:#2350E6; --time-ink:#1D45CC;
+  --night:#111A24; --night-ink:#EEF1F4; --night-dim:#A9B3C0; --night-line:#2A3644; --night-quake:#FF7A45; --night-time:#9DB7FF;
+  --f-display:"Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:var(--time-ink)}a:hover{color:#1638B0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--time);outline-offset:2px}
+.wrap{max-width:1440px;margin:0 auto;padding-block:24px 48px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+.label{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.display{font-family:var(--f-display);font-stretch:125%;font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:500;font-size:14px;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--ink3);color:var(--ink)}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:var(--night-ink);font-weight:600}
+.btn.dark:hover{color:var(--night-ink);background:#1F2B39}
+.chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink2);font-size:13px;font-weight:500;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--night-ink)}
+.chip em{font-style:normal;opacity:.65;margin-left:4px}
+.mag{font-family:var(--f-mono);font-size:11px;font-weight:600;color:#fff;background:var(--quake-bg);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.mag.low{background:transparent;color:var(--ink2);border:1px solid var(--line);padding:0 5px}
+.newtag{font-family:var(--f-mono);font-size:11px;font-weight:600;color:var(--time-ink);border:1px solid var(--time);border-radius:4px;padding:0 5px;white-space:nowrap}
+.quiet{font-family:var(--f-mono);font-size:11px;color:var(--ink3)}
+.star{color:var(--quake-ink)}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 28px}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;text-decoration:none;color:var(--ink)}
+.brand b{font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:28px;letter-spacing:.08em}
+nav.views{display:flex;flex-wrap:wrap;gap:4px}
+nav.views a{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;color:var(--ink2);text-decoration:none;font-weight:500;font-size:14px}
+nav.views a[aria-current="page"]{background:var(--ink);color:var(--night-ink);font-weight:600}
+.status{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-family:var(--f-mono);font-size:12px;color:var(--ink3)}
+.status .ok{color:#1F7A4A}.status .warn{color:var(--quake-ink);font-weight:600}
+.banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--night-ink);border-radius:12px;padding:10px 16px}
+.banner .btn{min-height:36px;background:var(--night-ink);color:var(--ink);border:0}
+
+/* summary strip */
+.summary{padding:18px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:18px 40px}
+.summary .big{font-family:var(--f-display);font-stretch:125%;font-weight:700;font-size:34px;line-height:1.1}
+.stat{display:flex;align-items:baseline;gap:10px}
+.meter{display:flex;gap:3px}.meter i{width:7px;height:18px;border-radius:2px;background:var(--line)}
+.meter i.on{background:var(--ink)}.meter i.hot{background:var(--quake)}
+.summary select{min-height:36px;border:1px solid var(--line);border-radius:999px;background:var(--card);padding:0 12px;font-size:13px}
+.summary .acts{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+
+/* seismograph */
+.main{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.sg{flex:999 1 860px;min-width:0;overflow:hidden}
+.sg-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.sg-head h2{margin:0;font-family:var(--f-display);font-stretch:125%;font-weight:700;font-size:18px;letter-spacing:.04em}
+.sg-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sg-tools input{min-height:36px;border:1px solid var(--line);border-radius:999px;background:var(--card);padding:0 14px;font-size:13px;width:200px;max-width:100%}
+.row{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:0 20px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--grid)}
+.axis{padding:10px 20px 8px;border-bottom:1px solid var(--grid);align-items:end}
+.row .who{display:flex;flex-direction:column;gap:4px;min-width:0}
+.row .name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row .name a{font-weight:600;font-size:16px;color:var(--ink);text-decoration:none;line-height:1.3}
+.row .name a:hover{text-decoration:underline}
+.row .meta{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.row .state{font-size:13.5px;color:var(--ink2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tr{position:relative;height:64px;min-width:0}
+.tr svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.tr .b{position:absolute;top:-7px;transform:translateX(-50%);font-family:var(--f-mono);font-size:10px;font-weight:600;color:#fff;background:var(--quake-bg);border-radius:3px;padding:0 4px;white-space:nowrap;pointer-events:none}
+.tr .f{position:absolute;top:6px;bottom:6px;border-left:1.5px dashed var(--time);pointer-events:none}
+.tr .fl{position:absolute;bottom:2px;font-family:var(--f-mono);font-size:10px;color:var(--time-ink);background:var(--card);padding:0 3px;white-space:nowrap;max-width:45%;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.ticks{position:relative;height:32px;font-family:var(--f-mono);font-size:10.5px;color:var(--ink3)}
+.ticks span{position:absolute;bottom:0;transform:translateX(-50%);white-space:nowrap}
+.ticks .you{bottom:auto;top:0;color:var(--time-ink);font-weight:600}
+.ticks .now{color:var(--ink);font-weight:600}
+.sg-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px;padding:14px 20px;font-size:13px;color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.empty{padding:28px 20px;color:var(--ink2)}
+svg .fut{fill:#2350E6;fill-opacity:.05}
+svg .gl{stroke:var(--grid);stroke-width:1}
+svg .glf{stroke:#DCE3F7;stroke-width:1}
+svg .you{stroke:var(--time);stroke-width:1.5}
+svg .nowl{stroke:var(--ink);stroke-width:1.5}
+svg .seen{fill:none;stroke:var(--seen);stroke-width:1.2;stroke-linejoin:round}
+svg .fresh{fill:none;stroke:var(--ink);stroke-width:1.3;stroke-linejoin:round}
+
+/* the minute (night panel) */
+.minute{flex:1 1 340px;min-width:0;background:var(--night);color:var(--night-ink);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.minute .label{color:var(--night-dim)}
+.minute h2{margin:0;font-family:var(--f-display);font-stretch:125%;font-weight:700;font-size:22px;line-height:1.2}
+.minute ol{list-style:none;margin:0;padding:0}
+.minute li{display:grid;grid-template-columns:58px minmax(0,1fr);gap:12px;padding:13px 0;border-top:1px solid var(--night-line)}
+.minute .m{font-family:var(--f-mono);font-size:12px;font-weight:600;background:var(--night-quake);color:var(--night);padding:1px 6px;border-radius:4px;justify-self:start}
+.minute .m.low{background:transparent;color:var(--night-dim);border:1px solid var(--night-line)}
+.minute .ago{font-family:var(--f-mono);font-size:11px;color:var(--night-dim)}
+.minute a{color:var(--night-ink);text-decoration:none;font-weight:600}
+.minute a:hover{text-decoration:underline}
+.minute .was{font-size:13px;color:var(--night-dim);text-decoration:line-through}
+.minute .now{font-size:14px;line-height:1.4}
+.minute .nw{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--night-time)}
+.minute .btn{background:var(--night-ink);color:var(--night);border:0;font-weight:600}
+.minute .btn.ghost{background:transparent;color:var(--night-ink);border:1px solid #3A4757;font-weight:500}
+
+/* situation */
+.crumbs{font-size:14px;color:var(--ink3)}
+.sit-head{display:flex;flex-wrap:wrap;gap:20px 48px;align-items:flex-end;justify-content:space-between}
+.sit-head h1{margin:0;font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:clamp(30px,4vw,46px);line-height:1.05;text-wrap:balance}
+.sit-head .stateline{margin:0;font-size:20px;line-height:1.4;max-width:52ch}
+.bigmag{font-family:var(--f-display);font-stretch:125%;font-weight:800;font-size:56px;line-height:1;color:var(--quake-bg)}
+.bigtrace{padding:18px 20px 14px}
+.bigtrace .scroll{overflow-x:auto}
+.bt{position:relative;min-width:760px;height:296px}
+.bt .co{position:absolute;font-family:var(--f-mono);font-size:11px;white-space:nowrap;color:var(--ink);background:var(--card);padding:0 3px;text-decoration:none}
+.bt .co b{font-weight:600}
+.bt .co.hot b{color:var(--quake-ink)}
+.bt .stem{position:absolute;border-left:1px solid var(--seen)}
+.bt svg{position:absolute;left:0;top:64px;width:100%;height:150px;display:block;overflow:visible}
+.bt .ticks{position:absolute;left:0;right:0;top:220px}
+.bt .al{position:absolute;top:252px;font-family:var(--f-mono);font-size:11px;color:var(--time-ink);white-space:nowrap;max-width:48%;overflow:hidden;text-overflow:ellipsis}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:stretch}
+.col{flex:1 1 360px;min-width:0;padding:20px;display:flex;flex-direction:column;gap:12px}
+.col h2{margin:0;font-family:var(--f-display);font-stretch:125%;font-weight:700;font-size:16px;letter-spacing:.04em}
+.col .note{font-size:13px;color:var(--ink3);margin:0}
+.box{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:10px;background:var(--paper)}
+.box.now{background:transparent;border:1.5px solid var(--ink)}
+.list > *{border-top:1px solid var(--grid);padding:9px 0}
+.hist{display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:10px;font-size:13.5px;align-items:baseline}
+.hist .d{font-family:var(--f-mono);font-size:12px;color:var(--ink3)}
+.hist a{color:var(--ink2);text-decoration:none}.hist a:hover{text-decoration:underline}
+.claim{display:flex;flex-direction:column;gap:6px}
+.claim b{font-weight:600;line-height:1.35}
+.segs{display:flex;gap:3px}.segs i{width:16px;height:8px;border-radius:2px;background:var(--line)}
+.segs i.c{background:var(--ink)}.segs i.d{background:var(--quake)}
+.verdict{font-family:var(--f-mono);font-size:11.5px;color:var(--ink2)}
+.told{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--ink)}
+.told span{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.told:hover b{text-decoration:underline}
+.told b{font-weight:500;line-height:1.35}
+.ahead{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:baseline}
+.ahead .w{font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--time-ink)}
+.rel{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:14px;align-items:center;text-decoration:none;color:var(--ink)}
+.rel span{display:flex;flex-direction:column}
+.rel small{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.rel svg{width:140px;height:28px}
+
+/* minute player */
+.player{max-width:620px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.prog{display:flex;gap:4px}.prog i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.prog i.done{background:var(--ink)}.prog i.cur{background:var(--quake)}
+.pcard{padding:20px;display:flex;flex-direction:column;gap:12px}
+.pcard h1{margin:0;font-family:var(--f-display);font-stretch:125%;font-weight:700;font-size:26px;line-height:1.15}
+.pcard .now{font-size:19px;font-weight:600;line-height:1.35;margin:0}
+.pcard .was{font-size:14px;color:var(--ink3);text-decoration:line-through;margin:0}
+.ctrls{display:flex;align-items:center;gap:12px}
+.round{width:52px;height:52px;border-radius:999px;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.ctrls .btn.dark{flex:1;justify-content:center;min-height:52px}
+
+/* blind spots */
+.blind{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.plot{flex:1 1 560px;min-width:0;padding:12px}
+.plot svg{width:100%;height:auto;display:block}
+.plot text{font-family:var(--f-mono);font-size:11px;fill:var(--ink3)}
+.plot .pl{font-family:var(--f-body);font-size:12px;fill:var(--ink);font-weight:600}
+.bl-list{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.bl-item{padding:14px;display:flex;flex-direction:column;gap:6px}
+.bl-item q{font-size:13.5px;color:var(--ink2)}
+foot,footer{font-size:13px;color:var(--ink3)}
+footer{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;border-top:1px solid var(--line);padding-top:16px}
+
+@media (max-width:760px){
+  .row{grid-template-columns:minmax(0,1fr);gap:10px}
+  .axis .label{display:none}
+  .summary{padding:16px}
+  .summary .acts{margin-left:0}
+  .sg-tools input{width:100%}
+  .brand b{font-size:24px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#/"><b>TREMOR</b><span class="label">The world, as it moves</span></a>
+    <nav class="views" aria-label="Views">
+      <a href="#/" data-nav="home">Seismograph</a>
+      <a href="#/minute" data-nav="minute">The minute</a>
+      <a href="#/blind" data-nav="blind">Blind spots</a>
+    </nav>
+    <div class="status" id="status">Reading the instruments…</div>
+  </header>
+  <div class="banner" id="banner" hidden><span>New readings arrived.</span><button class="btn" id="applyUpdate" type="button">Show them</button></div>
+  <main id="view" aria-live="polite"></main>
+  <footer>
+    <span>TREMOR follows about 30 news feeds and groups their stories into ongoing situations. Magnitude combines how many independent outlets carry a development, how fast it spread, and whether it moved an existing situation.</span>
+    <a href="../">Open GLOBEWIRE</a>
+  </footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+const HOUR = 36e5, DAY = 24 * HOUR, TAU = 6;
+const DESK = { world:"World", politics:"Politics", finance:"Finance", tech:"Tech", science:"Science" };
+const REGION = { AMERICAS:"Americas", EUROPE:"Europe", AFRICA:"Africa", MIDEAST:"Middle East", "ASIA-PAC":"Asia-Pacific", GLOBAL:"Worldwide" };
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+};
+const S = {
+  data:null, pending:null, byId:new Map(), now:Date.now(), since:0, sinceMode:"visit",
+  lastSeen:store.get("tremor.lastSeen", null), desk:"all", q:"", showQuiet:false,
+  follow:new Set(store.get("tremor.follow", [])), openedAt:Date.now(),
+};
+
+/* ---------- helpers ---------- */
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function ago(t, now = S.now){
+  const m = Math.max(0, Math.round((now - t) / 6e4));
+  if (m < 1) return "just now";
+  if (m < 60) return m + "m ago";
+  const h = Math.round(m / 60);
+  if (h < 48) return h + "h ago";
+  return Math.round(h / 24) + "d ago";
+}
+const span = ms => ms < 48 * HOUR ? Math.max(1, Math.round(ms / HOUR)) + "h" : Math.round(ms / DAY) + "d";
+const fmtDay = t => new Date(t).toLocaleDateString(undefined, { weekday:"short", day:"numeric", month:"short" });
+const fmtDate = t => new Date(t).toLocaleDateString(undefined, { day:"numeric", month:"short" });
+const magTag = (m, small) => `<span class="mag${m < 4 ? " low" : ""}">M${m.toFixed(1)}</span>`;
+function hash(str){ let h = 2166136261; for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const wordsIn = t => (t || "").split(/\s+/).filter(Boolean).length;
+const outletOf = src => ["BBC", "Guardian", "NPR"].find(p => (src || "").startsWith(p)) || src;
+
+/* ---------- data ---------- */
+function prep(){
+  S.byId = new Map();
+  for (const s of S.data.situations){
+    s.events.sort((a, b) => a.t - b.t);
+    s.latest = s.events[s.events.length - 1];
+    s.aiFresh = !!(s.ai && s.ai.at >= s.latest.seen);
+    s.title = (s.ai && s.ai.name) || s.name;
+    s.stateLine = s.aiFresh && s.ai.state ? s.ai.state : s.latest.title;
+    S.byId.set(s.id, s);
+  }
+  computeSince();
+}
+function computeSince(){
+  S.now = Date.now();
+  const opts = { visit: S.lastSeen ?? S.now - DAY, "6h": S.now - 6 * HOUR, "24h": S.now - DAY, "3d": S.now - 3 * DAY };
+  S.since = opts[S.sinceMode];
+  for (const s of S.data.situations){
+    s.recent = s.events.filter(e => e.t > S.since);
+    s.isNew = s.created > S.since;
+    s.moved = !s.isNew && s.recent.length > 0;
+    s.quiet = !s.isNew && !s.moved;
+    s.mag = s.recent.length ? Math.max(...s.recent.map(e => e.m)) : s.latest.m;
+    const before = s.events.filter(e => e.t <= S.since);
+    s.wasLine = !s.recent.length ? "" :
+      (s.recent.length === 1 && s.aiFresh && s.ai.was) ? s.ai.was :
+      before.length ? before[before.length - 1].title : "";
+  }
+}
+const active = () => S.data.situations.filter(s => S.now - s.latest.t <= 7 * DAY);
+const changedFirst = (a, b) => {
+  const g = s => (!s.quiet ? 0 : S.follow.has(s.id) ? 1 : 2);
+  return g(a) - g(b) || (g(a) === 0 ? b.mag - a.mag : 0) || b.latest.t - a.latest.t;
+};
+function minuteSet(all){
+  const changed = all.filter(s => !s.quiet).sort((a, b) => b.mag - a.mag);
+  const out = []; let secs = 0;
+  for (const s of changed){
+    const t = 1.5 + wordsIn(s.title + " " + s.stateLine) / 2.6;
+    if (out.length && secs + t > 62) break;
+    out.push(s); secs += t;
+  }
+  return { items:out, secs:Math.round(secs / 5) * 5 || 0, total:changed.length };
+}
+
+/* ---------- traces ---------- */
+function traceGeom(o){
+  const K = o.NOW / Math.log(1 + o.ageMax / TAU);
+  return {
+    xAge: a => o.NOW - K * Math.log(1 + clamp(a, 0, o.ageMax) / TAU),
+    xAhead: h => o.NOW + clamp(h / o.aheadMax, 0, 1) * (o.W - o.NOW),
+  };
+}
+function trace(s, o){
+  const g = traceGeom(o), ageOf = t => (S.now - t) / HOUR;
+  const youAge = ageOf(S.since), youX = youAge > o.ageMax ? -Infinity : g.xAge(youAge);
+  const evs = s.events.map(e => ({ a:ageOf(e.t), m:e.m })).filter(e => e.a >= -0.5 && e.a <= o.ageMax + 24);
+  const startX = Math.max(0, g.xAge(Math.min(o.ageMax, ageOf(s.created) + 0.4)));
+  const r = rng(hash(s.id)), step = o.step || 1.5, invK = Math.log(1 + o.ageMax / TAU) / o.NOW;
+  let seen = "", fresh = "", i = 0;
+  for (let x = startX; x <= o.NOW; x += step, i++){
+    const age = TAU * (Math.exp((o.NOW - x) * invK) - 1);
+    let y = (r() - 0.5) * o.noise;
+    for (const e of evs){
+      const dt = e.a - age;
+      if (dt < 0 || dt > 30) continue;
+      const tau = 0.8 + e.m * 0.45;
+      const env = dt < 0.25 ? dt / 0.25 : Math.exp(-(dt - 0.25) / tau);
+      y += Math.pow(1.85, e.m) * o.amp * env * (i % 2 ? 1 : -1) * (0.35 + 0.65 * r());
+    }
+    y = clamp(y, -o.clamp, o.clamp);
+    const pt = x.toFixed(1) + " " + (o.mid - y).toFixed(1);
+    if (x <= youX) seen += (seen ? " L" : "M") + pt;
+    if (x >= youX - step) fresh += (fresh ? " L" : "M") + pt;
+  }
+  return { seen, fresh, youX, g };
+}
+const pct = (x, W) => (x / W * 100).toFixed(3) + "%";
+const ROW = { W:700, NOW:520, ageMax:168, aheadMax:72, mid:34, clamp:27, amp:0.75, noise:2.4 };
+const ROW_TICKS = [[168,"7d"],[120,"5d"],[72,"3d"],[48,"2d"],[24,"1d"],[12,"12h"],[6,"6h"],[1,"1h"]];
+function rowTrace(s){
+  const t = trace(s, ROW), W = ROW.W;
+  const lines = ROW_TICKS.slice(1).map(([a]) => `<line class="gl" x1="${t.g.xAge(a).toFixed(1)}" x2="${t.g.xAge(a).toFixed(1)}" y1="0" y2="64" vector-effect="non-scaling-stroke"/>`).join("") +
+    [24, 48].map(h => `<line class="glf" x1="${t.g.xAhead(h)}" x2="${t.g.xAhead(h)}" y1="0" y2="64" vector-effect="non-scaling-stroke"/>`).join("");
+  const badges = s.recent.filter(e => e.m >= 4 && S.now - e.t <= ROW.ageMax * HOUR)
+    .sort((a, b) => b.m - a.m).slice(0, 2)
+    .map(e => `<span class="b" style="left:${pct(t.g.xAge((S.now - e.t) / HOUR), W)}">M${e.m.toFixed(1)}</span>`).join("");
+  const ahead = aheadList(s).filter(a => a.t - S.now <= ROW.aheadMax * HOUR).slice(0, 2).map(a => {
+    const x = t.g.xAhead((a.t - S.now) / HOUR), right = x > 560;
+    return `<span class="f" style="left:${pct(x, W)}"></span><span class="fl" style="${right ? "right:" + pct(W - x + 4, W) : "left:" + pct(x + 4, W) + ";max-width:" + pct(W - x - 8, W)}">${esc(a.short)}</span>`;
+  }).join("");
+  return `<div class="tr" aria-hidden="true"><svg viewBox="0 0 ${W} 64" preserveAspectRatio="none">
+    <rect class="fut" x="${ROW.NOW}" y="0" width="${W - ROW.NOW}" height="64"/>${lines}
+    <line class="gl" x1="0" x2="${ROW.NOW}" y1="${ROW.mid}" y2="${ROW.mid}" vector-effect="non-scaling-stroke"/>
+    ${Number.isFinite(t.youX) ? `<line class="you" x1="${t.youX.toFixed(1)}" x2="${t.youX.toFixed(1)}" y1="0" y2="64" vector-effect="non-scaling-stroke"/>` : ""}
+    <line class="nowl" x1="${ROW.NOW}" x2="${ROW.NOW}" y1="0" y2="64" vector-effect="non-scaling-stroke"/>
+    <path class="seen" d="${t.seen || "M0 0"}" vector-effect="non-scaling-stroke"/>
+    <path class="fresh" d="${t.fresh || "M0 0"}" vector-effect="non-scaling-stroke"/>
+  </svg>${badges}${ahead}</div>`;
+}
+function rowAxis(){
+  const g = traceGeom(ROW), W = ROW.W, youAge = (S.now - S.since) / HOUR;
+  const ticks = ROW_TICKS.map(([a, l], i) => `<span style="left:${pct(g.xAge(a), W)};${i === 0 ? "transform:none" : ""}">${l}</span>`).join("");
+  return `<div class="row axis"><span class="label">Situation · state now</span><div class="ticks" aria-hidden="true">
+    ${youAge <= ROW.ageMax ? `<span class="you" style="left:${pct(g.xAge(youAge), W)}">You were here</span>` : ""}
+    ${ticks}<span class="now" style="left:${pct(ROW.NOW, W)}">NOW</span>
+    <span style="left:${pct(g.xAhead(24), W)}">+1d</span><span style="left:${pct(g.xAhead(48), W)}">+2d</span><span style="left:100%;transform:translateX(-100%)">+3d</span></div></div>`;
+}
+function sparkline(s){
+  const t = trace(s, { W:140, NOW:140, ageMax:168, aheadMax:1, mid:14, clamp:13, amp:0.38, noise:1.2, step:1 });
+  const d = [t.seen, t.fresh].filter(Boolean).map((p, i) => i ? p.replace(/^M/, "L") : p).join(" ") || "M0 14 L140 14";
+  return `<svg viewBox="0 0 140 28" aria-hidden="true"><path class="fresh" d="${d}"/></svg>`;
+}
+function aheadList(s){
+  const out = (s.ahead || []).map(a => ({ t:a.t, label:a.label, url:a.url, kind:a.exact ? "Mentioned" : "Approximate" }));
+  if (s.aiFresh) for (const a of (s.ai.ahead || [])){
+    const t = Date.parse(a.date + "T12:00:00Z");
+    if (t > S.now && !out.some(o => Math.abs(o.t - t) < DAY)) out.push({ t, label:a.label, url:"", kind:"Expected" });
+  }
+  return out.filter(a => a.t > S.now).sort((a, b) => a.t - b.t).map(a => ({ ...a, short:a.label.length > 34 ? a.label.slice(0, 32).replace(/\s+\S*$/, "") + "…" : a.label }));
+}
+
+/* ---------- home ---------- */
+function activity(all){
+  const top = (from, to) => { const ms = all.flatMap(s => s.events).filter(e => e.t > from && e.t <= to).map(e => e.m).sort((a, b) => b - a).slice(0, 5); return ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : 0; };
+  const today = top(S.now - DAY, S.now), prev = [];
+  for (let d = 1; d <= 6; d++){ const v = top(S.now - (d + 1) * DAY, S.now - d * DAY); if (v) prev.push(v); }
+  const base = prev.length >= 2 ? prev.reduce((a, b) => a + b, 0) / prev.length : null;
+  const words = base === null ? "building a baseline" : today > base + 0.3 ? "busier than a typical day" : today < base - 0.3 ? "quieter than a typical day" : "about a typical day";
+  return { m:today, words };
+}
+function viewHome(){
+  const all = active();
+  const moved = all.filter(s => s.moved).length, fresh = all.filter(s => s.isNew).length, quiet = all.filter(s => s.quiet).length;
+  const act = activity(all), minute = minuteSet(all);
+  const firstVisit = S.lastSeen === null && S.sinceMode === "visit";
+  const sinceLabel = S.sinceMode === "visit" ? (firstVisit ? "Last 24 hours" : ago(S.since)) : { "6h":"6 hours", "24h":"24 hours", "3d":"3 days" }[S.sinceMode];
+  const sinceKicker = S.sinceMode === "visit" ? (firstVisit ? "First visit · showing the" : "Since you left") : "In the last";
+  const q = S.q.trim().toLowerCase();
+  const inDesk = s => (S.desk === "all" || s.desk === S.desk) && (!q || (s.title + " " + s.stateLine + " " + (s.place || "")).toLowerCase().includes(q));
+  const list = all.filter(inDesk).sort(changedFirst);
+  const changed = list.filter(s => !s.quiet), quietList = list.filter(s => s.quiet);
+  const shownQuiet = S.showQuiet ? quietList : quietList.filter(s => S.follow.has(s.id));
+  const rows = changed.slice(0, 40).concat(shownQuiet.slice(0, 80));
+  const deskCount = k => all.filter(s => !s.quiet && (k === "all" || s.desk === k)).length;
+  const segs = Array.from({ length:10 }, (_, i) => `<i class="${i < Math.round(act.m) ? (i >= 4 ? "hot" : "on") : ""}"></i>`).join("");
+
+  return `
+  <section class="card summary" aria-label="Since your last visit">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span class="label">${sinceKicker}</span>
+      <span class="big">${esc(sinceLabel)}</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px 34px">
+      <div class="stat"><span class="big" style="color:var(--quake-ink)">${moved}</span><span>moved</span></div>
+      <div class="stat"><span class="big" style="color:var(--time-ink)">${fresh}</span><span>new</span></div>
+      <div class="stat"><span class="big" style="color:var(--ink3)">${quiet}</span><span>quiet</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span class="label">World activity · last 24h</span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="display" style="font-size:20px">M${act.m.toFixed(1)}</span>
+      <div class="meter" aria-hidden="true">${segs}</div><span style="font-size:13px;color:var(--ink3)">${act.words}</span></div>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:4px"><span class="label">Show changes since</span>
+      <select id="sinceSel">
+        <option value="visit"${S.sinceMode === "visit" ? " selected" : ""}>My last visit</option>
+        <option value="6h"${S.sinceMode === "6h" ? " selected" : ""}>6 hours ago</option>
+        <option value="24h"${S.sinceMode === "24h" ? " selected" : ""}>24 hours ago</option>
+        <option value="3d"${S.sinceMode === "3d" ? " selected" : ""}>3 days ago</option>
+      </select></label>
+    <div class="acts">
+      ${minute.items.length ? `<a class="btn dark" href="#/minute"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>Read the minute · ${minute.secs}s</a>` : ""}
+      <button class="btn" type="button" data-act="markread">Mark all as read</button>
+    </div>
+  </section>
+
+  <div class="main">
+    <section class="card sg" aria-labelledby="sgTitle">
+      <div class="sg-head">
+        <h2 id="sgTitle">Seismograph</h2>
+        <div class="sg-tools">
+          <div role="group" aria-label="Desk" style="display:flex;flex-wrap:wrap;gap:6px">
+            ${[["all", "All desks"], ...Object.entries(DESK)].map(([k, n]) => `<button type="button" class="chip" data-desk="${k}" aria-pressed="${S.desk === k}">${n}<em>${deskCount(k)}</em></button>`).join("")}
+          </div>
+          <label class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" for="q">Search situations</label>
+          <input id="q" type="search" placeholder="Search situations" value="${esc(S.q)}" autocomplete="off">
+        </div>
+      </div>
+      ${rowAxis()}
+      ${rows.length ? rows.map(s => `
+        <div class="row">
+          <div class="who">
+            <div class="name">
+              ${S.follow.has(s.id) ? `<span class="star" title="Following" aria-label="Following">★</span>` : ""}
+              <a href="#/s/${s.id}">${esc(s.title)}</a>
+              ${s.isNew ? `<span class="newtag">NEW · M${s.mag.toFixed(1)}</span>` : s.moved ? magTag(s.mag) : `<span class="quiet">quiet · ${ago(s.latest.t)}</span>`}
+            </div>
+            <span class="meta">${DESK[s.desk] || "World"} · ${esc(s.place || REGION[s.region] || "Worldwide")}</span>
+            <span class="state">${esc(s.stateLine)}</span>
+          </div>
+          ${rowTrace(s)}
+        </div>`).join("") : `<p class="empty">${q || S.desk !== "all" ? "Nothing matches. Try another desk or search." : "Nothing moved in this window. The world is quiet."}</p>`}
+      <div class="sg-foot">
+        <div class="legend">
+          <span><span aria-hidden="true" style="width:18px;height:2px;background:var(--seen)"></span>Seen</span>
+          <span><span aria-hidden="true" style="width:18px;height:2px;background:var(--ink)"></span>New since you left</span>
+          <span><span aria-hidden="true" style="width:12px;height:12px;border-radius:3px;background:var(--quake-bg)"></span>Magnitude 4+</span>
+          <span><span aria-hidden="true" style="height:14px;border-left:1.5px dashed var(--time)"></span>Mentioned ahead</span>
+          <span style="color:var(--ink3)">Time is stretched: recent hours get the most room.</span>
+        </div>
+        ${quietList.length ? `<button type="button" class="btn" data-act="quiet">${S.showQuiet ? "Hide quiet situations" : `Show ${quietList.length} quiet situation${quietList.length === 1 ? "" : "s"}`}</button>` : ""}
+      </div>
+    </section>
+
+    <aside class="minute" aria-labelledby="minTitle">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span class="label">The minute</span>
+        <h2 id="minTitle">${minute.items.length ? `${minute.items.length} change${minute.items.length === 1 ? "" : "s"}, about ${minute.secs} seconds` : "Nothing moved"}</h2>
+        <span style="font-size:13px;color:var(--night-dim)">${minute.items.length ? "Only what moved since then. Biggest first." : "Nothing new since then. Check back later, or pick a longer window."}</span>
+      </div>
+      ${minute.items.length ? `<ol>${minute.items.map(s => `
+        <li><div style="display:flex;flex-direction:column;gap:4px"><span class="m${s.mag < 4 ? " low" : ""}">M${s.mag.toFixed(1)}</span><span class="ago">${ago(s.latest.t)}</span></div>
+        <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+          <a href="#/s/${s.id}">${esc(s.title)}</a>
+          ${s.isNew ? `<span class="nw">New situation</span>` : ""}
+          ${s.wasLine && s.wasLine !== s.stateLine ? `<span class="was">${esc(s.wasLine)}</span>` : ""}
+          <span class="now">${esc(s.stateLine)}</span>
+        </div></li>`).join("")}</ol>` : ""}
+      ${minute.total > minute.items.length ? `<span style="font-size:13px;color:var(--night-dim)">${minute.total - minute.items.length} smaller changes are on the seismograph.</span>` : ""}
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${minute.items.length ? `<a class="btn" href="#/minute"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>Play the minute</a>` : ""}
+        <button class="btn ghost" type="button" data-act="markread">Mark all as read</button>
+      </div>
+    </aside>
+  </div>`;
+}
+
+/* ---------- one situation ---------- */
+function viewSituation(id){
+  const s = S.byId.get(id);
+  if (!s) return `<p class="crumbs"><a href="#/">Seismograph</a></p><div class="card empty">This situation has gone quiet and dropped off the record. <a href="#/">Back to the seismograph</a>.</div>`;
+  const following = S.follow.has(s.id);
+  const ageMax = clamp((S.now - s.created) / HOUR + 8, 48, 504);
+  const O = { W:1200, NOW:900, ageMax, aheadMax:168, mid:75, clamp:64, amp:1.45, noise:3 };
+  const t = trace(s, O), W = O.W;
+  const tickSet = [[1,"1h"],[6,"6h"],[12,"12h"],[24,"1d"],[48,"2d"],[72,"3d"],[168,"7d"],[336,"14d"]].filter(([a]) => a < ageMax * 0.92);
+  const youAge = (S.now - S.since) / HOUR;
+  // callouts for the biggest moves, placed in rows so labels don't collide
+  const ends = [-1e9, -1e9, -1e9];
+  const callouts = s.events.filter(e => (S.now - e.t) / HOUR <= ageMax).sort((a, b) => b.m - a.m).slice(0, 6)
+    .map(e => ({ e, x:t.g.xAge((S.now - e.t) / HOUR) })).sort((a, b) => a.x - b.x).map(({ e, x }) => {
+      const label = e.title.length > 42 ? e.title.slice(0, 40).replace(/\s+\S*$/, "") + "…" : e.title;
+      const w = (label.length + 8) * 6.7 + 10, left = x < 120 ? x - 6 : x > W - 120 ? x - w + 6 : x - w / 2;
+      let row = ends.findIndex(end => end < left - 10); if (row < 0) row = 2;
+      ends[row] = left + w;
+      const top = row * 20, tf = x < 120 ? "translateX(-6px)" : x > W - 120 ? "translateX(calc(-100% + 6px))" : "translateX(-50%)";
+      return `<a class="co${e.m >= 4 ? " hot" : ""}" href="${esc(safeUrl(e.url)) || "#"}" target="_blank" rel="noopener" style="top:${top}px;left:${pct(x, W)};transform:${tf}"><b>M${e.m.toFixed(1)}</b> · ${esc(label)}</a>
+        <span class="stem" aria-hidden="true" style="left:${pct(x, W)};top:${top + 17}px;height:${Math.max(0, 64 - top - 17)}px"></span>`;
+    }).join("");
+  const ahead = aheadList(s);
+  const aheadMarks = ahead.filter(a => a.t - S.now <= O.aheadMax * HOUR).slice(0, 2).map((a, i) => {
+    const x = t.g.xAhead((a.t - S.now) / HOUR);
+    return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="8" y2="142" stroke="#2350E6" stroke-width="1.5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+  }).join("");
+  const aheadLabels = ahead.filter(a => a.t - S.now <= O.aheadMax * HOUR).slice(0, 2).map((a, i) => {
+    const x = t.g.xAhead((a.t - S.now) / HOUR), side = x > W * 0.82 ? "right:" + pct(W - x - 1, W) : "left:" + pct(x + 5, W);
+    return `<span class="al" style="${side};top:${252 + i * 18}px">${esc(a.short)} · ${fmtDay(a.t)}</span>`;
+  }).join("");
+
+  const latest = s.latest, prev = s.events[s.events.length - 2];
+  const wasText = s.aiFresh && s.ai.was ? s.ai.was : prev ? prev.title : "";
+  const claims = s.aiFresh && (s.ai.claims || []).length ? s.ai.claims : null;
+  const outletsOnLatest = [...new Map(latest.items.map(i => [outletOf(i.source), i])).values()];
+  const segs = (c, d) => Array.from({ length:6 }, (_, k) => `<i class="${k < c ? "c" : k < c + d ? "d" : ""}"></i>`).join("");
+  const verdict = (c, d) => d ? `Disputed · ${c} confirm, ${d} dispute` : c >= 3 ? `Confirmed · ${c} outlets` : c === 2 ? "2 outlets" : c === 1 ? "Single source · unconfirmed" : "Not attributed to an outlet";
+  const related = (s.related || []).map(r => ({ r, o:S.byId.get(r.id) })).filter(x => x.o);
+
+  return `
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="#/">Seismograph</a> <span aria-hidden="true">/</span> ${esc(s.title)}</nav>
+  <section class="sit-head">
+    <div style="flex:1 1 600px;min-width:0;display:flex;flex-direction:column;gap:10px">
+      <span class="label">${DESK[s.desk] || "World"} · ${esc(REGION[s.region] || "Worldwide")}${s.place ? " · " + esc(s.place) : ""} · Tracked since ${fmtDate(s.created)}</span>
+      <h1>${esc(s.title)}</h1>
+      <p class="stateline">${esc(s.stateLine)}</p>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:2px"><span class="label">Latest move</span><span class="bigmag"${latest.m < 4 ? ' style="color:var(--ink)"' : ""}>M${latest.m.toFixed(1)}</span><span style="font-size:13px;color:var(--ink2)">${ago(latest.t)} · ${latest.outlets} outlet${latest.outlets === 1 ? "" : "s"}</span></div>
+      <button type="button" class="btn${following ? " dark" : ""}" data-act="follow" data-id="${s.id}" aria-pressed="${following}">${following ? "Following ★" : "Follow"}</button>
+    </div>
+  </section>
+
+  <section class="card bigtrace" aria-label="Activity over time">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;margin-bottom:8px">
+      <h2 class="display" style="margin:0;font-size:16px;letter-spacing:.04em">The last ${span(ageMax * HOUR)} and the week ahead</h2>
+      <span style="font-size:13px;color:var(--ink3)">Every spike is a development. Height is magnitude. Labels link to the reporting.</span>
+    </div>
+    <div class="scroll"><div class="bt">
+      ${callouts}
+      <svg viewBox="0 0 ${W} 150" preserveAspectRatio="none" aria-hidden="true">
+        <rect class="fut" x="${O.NOW}" y="0" width="${W - O.NOW}" height="150"/>
+        ${tickSet.map(([a]) => `<line class="gl" x1="${t.g.xAge(a).toFixed(1)}" x2="${t.g.xAge(a).toFixed(1)}" y1="0" y2="150" vector-effect="non-scaling-stroke"/>`).join("")}
+        <line class="gl" x1="0" x2="${O.NOW}" y1="${O.mid}" y2="${O.mid}" vector-effect="non-scaling-stroke"/>
+        ${Number.isFinite(t.youX) ? `<line class="you" x1="${t.youX.toFixed(1)}" x2="${t.youX.toFixed(1)}" y1="0" y2="150" vector-effect="non-scaling-stroke"/>` : ""}
+        <line class="nowl" x1="${O.NOW}" x2="${O.NOW}" y1="0" y2="150" vector-effect="non-scaling-stroke"/>
+        <path class="seen" d="${t.seen || "M0 0"}" vector-effect="non-scaling-stroke"/>
+        <path class="fresh" d="${t.fresh || "M0 0"}" vector-effect="non-scaling-stroke"/>
+        ${aheadMarks}
+      </svg>
+      <div class="ticks" aria-hidden="true">
+        <span style="left:0;transform:none">${span(ageMax * HOUR)}</span>
+        ${tickSet.map(([a, l]) => `<span style="left:${pct(t.g.xAge(a), W)}">${l}</span>`).join("")}
+        ${youAge <= ageMax ? `<span class="you" style="left:${pct(t.g.xAge(youAge), W)};top:18px">You were here</span>` : ""}
+        <span class="now" style="left:${pct(O.NOW, W)}">NOW</span>
+        <span style="left:${pct(t.g.xAhead(24), W)}">+1d</span><span style="left:${pct(t.g.xAhead(72), W)}">+3d</span><span style="left:100%;transform:translateX(-100%)">+7d</span>
+      </div>
+      ${aheadLabels}
+    </div></div>
+  </section>
+
+  <div class="cols">
+    <section class="card col" aria-labelledby="chg">
+      <h2 id="chg">What changed</h2>
+      ${wasText ? `<div class="box"><span class="label">Was${prev ? " · " + ago(prev.t) : ""}</span><span style="color:var(--ink2);text-decoration:line-through">${esc(wasText)}</span></div>` : ""}
+      <div class="box now"><span class="label" style="color:var(--quake-ink);font-weight:600">Now · ${ago(latest.t)}</span><span style="font-weight:600">${esc(s.stateLine)}</span></div>
+      <div class="list" style="display:flex;flex-direction:column;margin-top:4px">
+        <span class="label" style="border:0;padding:0 0 6px">History</span>
+        ${s.events.slice().reverse().slice(0, 14).map(e => `<div class="hist"><span class="d">${fmtDate(e.t)}</span>${magTag(e.m)}<a href="${esc(safeUrl(e.url)) || "#"}" target="_blank" rel="noopener">${esc(e.title)}</a></div>`).join("")}
+      </div>
+    </section>
+
+    <section class="card col" aria-labelledby="sure">
+      <h2 id="sure">How sure is this?</h2>
+      ${claims ? `<p class="note">The latest move, split into claims. Counts are independent outlets.</p>
+        <div class="list" style="display:flex;flex-direction:column">${claims.map(c => `
+          <div class="claim"><b>${esc(c.text)}</b><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="segs" aria-hidden="true">${segs(c.support.length, c.dispute.length)}</div><span class="verdict">${verdict(c.support.length, c.dispute.length)}${c.support.length ? " · " + esc(c.support.join(", ")) : ""}</span></div></div>`).join("")}</div>`
+      : `<p class="note">Independent outlets reporting the latest move. ${s.ai ? "" : "Claim-by-claim checks appear when the AI summaries are switched on."}</p>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="segs" aria-hidden="true">${segs(Math.min(6, latest.outlets), 0)}</div><span class="verdict">${verdict(latest.outlets, 0)}</span></div>
+        <div class="list" style="display:flex;flex-direction:column">${outletsOnLatest.map(i => `<span>${esc(outletOf(i.source))}</span>`).join("")}</div>`}
+    </section>
+
+    <section class="card col" aria-labelledby="told">
+      <h2 id="told">How it's being told</h2>
+      ${s.aiFresh && s.ai.framing ? `<div class="box"><span class="label">The spread, in one line</span><span>${esc(s.ai.framing)}</span></div>` : ""}
+      <div class="list" style="display:flex;flex-direction:column">${latest.items.slice(0, 10).map(i => {
+        const u = safeUrl(i.url);
+        return `<a class="told" href="${esc(u) || "#"}" target="_blank" rel="noopener"><span>${esc(i.source)}</span><b>${esc(i.title)}</b></a>`;
+      }).join("")}</div>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="card col" aria-labelledby="nxt">
+      <h2 id="nxt">Next tremors</h2>
+      <p class="note">Dates named in the reporting that are still ahead.</p>
+      ${ahead.length ? `<div class="list" style="display:flex;flex-direction:column">${ahead.map(a => `<div class="ahead"><span class="w">${fmtDay(a.t)}</span><span>${esc(a.label)}${safeUrl(a.url) ? ` <a href="${esc(a.url)}" target="_blank" rel="noopener">Source</a>` : ""}<br><span class="label">${a.kind}</span></span></div>`).join("")}</div>`
+        : `<p style="margin:0;color:var(--ink2)">No upcoming dates mentioned yet.</p>`}
+    </section>
+    <section class="card col" aria-labelledby="flt">
+      <h2 id="flt">Connected faults</h2>
+      <p class="note">Situations that share places or key terms with this one.</p>
+      ${related.length ? `<div class="list" style="display:flex;flex-direction:column">${related.map(({ r, o }) => `<a class="rel" href="#/s/${o.id}"><span><b>${esc(o.title)}</b><small>${DESK[o.desk] || "World"} · ${esc(r.why)}</small></span>${sparkline(o)}</a>`).join("")}</div>`
+        : `<p style="margin:0;color:var(--ink2)">Nothing connected yet.</p>`}
+    </section>
+  </div>`;
+}
+
+/* ---------- the minute player ---------- */
+const P = { items:[], i:0, t0:0, paused:false, pausedAt:0, done:false, speaking:false, durs:[] };
+function viewMinute(){
+  const m = minuteSet(active());
+  P.items = m.items; P.durs = m.items.map(s => Math.max(6, 1.5 + wordsIn(s.title + " " + s.stateLine) / 2.6) * 1000);
+  P.i = clamp(P.i, 0, Math.max(0, P.items.length - 1));
+  if (!P.items.length) return `<div class="player"><div class="card pcard"><span class="label">The minute</span><h1>Nothing moved</h1><p style="margin:0">Nothing new since ${esc(S.sinceMode === "visit" && S.lastSeen === null ? "the last 24 hours" : ago(S.since))}. Pick a longer window on the seismograph, or check back later.</p><a class="btn" href="#/">Back to the seismograph</a></div></div>`;
+  return `<div class="player">
+    <div class="prog" aria-hidden="true">${P.items.map((_, k) => `<i class="${k < P.i ? "done" : k === P.i ? "cur" : ""}"></i>`).join("")}</div>
+    <div style="display:flex;justify-content:space-between" class="label"><span>Change ${P.i + 1} of ${P.items.length}</span><span id="pclock"></span></div>
+    <div id="pcard"></div>
+    <div class="ctrls">
+      <button class="round" type="button" data-act="pprev" aria-label="Previous change"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><polyline points="15 5 8 12 15 19"/></svg></button>
+      <button class="btn dark" type="button" data-act="pplay" id="pplay"></button>
+      <button class="round" type="button" data-act="pnext" aria-label="Next change"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><polyline points="9 5 16 12 9 19"/></svg></button>
+    </div>
+    ${"speechSynthesis" in window ? `<button class="btn" type="button" data-act="speak" id="speakBtn" aria-pressed="${P.speaking}">${P.speaking ? "Stop reading aloud" : "Read it to me"}</button>` : ""}
+    <a href="#/" style="align-self:center">Back to the seismograph</a>
+  </div>`;
+}
+function playerCard(){
+  const s = P.items[P.i], el = $("#pcard"); if (!s || !el) return;
+  const t = trace(s, { W:700, NOW:560, ageMax:72, aheadMax:48, mid:30, clamp:26, amp:0.68, noise:2 });
+  el.innerHTML = `<article class="card pcard">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">${s.isNew ? `<span class="newtag">NEW · M${s.mag.toFixed(1)}</span>` : magTag(s.mag)}<span class="label">${DESK[s.desk] || "World"} · ${esc(s.place || REGION[s.region] || "Worldwide")} · ${ago(s.latest.t)}</span></div>
+    <h1>${esc(s.title)}</h1>
+    <div class="tr" aria-hidden="true" style="height:56px"><svg viewBox="0 0 700 60" preserveAspectRatio="none"><rect class="fut" x="560" y="0" width="140" height="60"/>
+      ${Number.isFinite(t.youX) ? `<line class="you" x1="${t.youX.toFixed(1)}" x2="${t.youX.toFixed(1)}" y1="0" y2="60" vector-effect="non-scaling-stroke"/>` : ""}<line class="nowl" x1="560" x2="560" y1="0" y2="60" vector-effect="non-scaling-stroke"/>
+      <path class="seen" d="${t.seen || "M0 0"}" vector-effect="non-scaling-stroke"/><path class="fresh" d="${t.fresh || "M0 0"}" vector-effect="non-scaling-stroke"/></svg></div>
+    ${s.wasLine && s.wasLine !== s.stateLine ? `<p class="was">${esc(s.wasLine)}</p>` : ""}
+    <p class="now">${esc(s.stateLine)}</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--grid);padding-top:10px">
+      <span class="label">${s.latest.outlets} outlet${s.latest.outlets === 1 ? "" : "s"}${aheadList(s)[0] ? " · next: " + esc(fmtDay(aheadList(s)[0].t)) : ""}</span>
+      <a href="#/s/${s.id}">Open the situation</a>
+    </div></article>`;
+  document.querySelectorAll(".prog i").forEach((b, k) => b.className = k < P.i ? "done" : k === P.i ? "cur" : "");
+  const lab = document.querySelector(".player > .label span"); if (lab) lab.textContent = `Change ${P.i + 1} of ${P.items.length}`;
+}
+function playerTick(){
+  if (location.hash !== "#/minute" || !P.items.length) return;
+  const clock = $("#pclock"), play = $("#pplay");
+  if (play) play.innerHTML = P.done ? "Play again" : P.paused ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>Resume` : `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>Pause`;
+  if (P.paused || P.speaking) { if (clock) clock.textContent = P.speaking ? "Reading aloud" : "Paused"; return; }
+  const el = performance.now() - P.t0;
+  if (clock) clock.textContent = Math.max(0, Math.ceil((P.durs[P.i] - el) / 1000)) + "s on this one";
+  if (el >= P.durs[P.i]) {
+    if (P.i < P.items.length - 1) { P.i++; P.t0 = performance.now(); playerCard(); }
+    else { P.paused = true; P.done = true; P.pausedAt = P.durs[P.i]; if (clock) clock.textContent = "That's the minute"; }
+  }
+}
+function go(delta){ P.i = clamp(P.i + delta, 0, P.items.length - 1); P.t0 = performance.now(); playerCard(); if (P.speaking) speak(); }
+function speak(){
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const s = P.items[P.i]; if (!s) return;
+  const u = new SpeechSynthesisUtterance(`${s.title}. ${s.stateLine}`);
+  u.rate = 1.02;
+  u.onend = () => { if (!P.speaking) return; if (P.i < P.items.length - 1) { P.i++; playerCard(); speak(); } else { P.speaking = false; renderPlayButtons(); } };
+  speechSynthesis.speak(u);
+}
+function renderPlayButtons(){ const b = $("#speakBtn"); if (b){ b.textContent = P.speaking ? "Stop reading aloud" : "Read it to me"; b.setAttribute("aria-pressed", P.speaking); } }
+
+/* ---------- blind spots ---------- */
+function viewBlind(){
+  const all = S.data.situations.filter(s => S.now - s.latest.t <= 14 * DAY);
+  const cov = s => Math.max(0.1, s.events.filter(e => S.now - e.t <= 7 * DAY).reduce((n, e) => n + e.outlets, 0) / 7);
+  const people = s => (s.aiFresh && s.ai.people_affected > 0) ? { n:s.ai.people_affected, quote:s.ai.people_quote, url:s.latest.url } : s.impact ? { n:s.impact.people, quote:s.impact.quote, url:s.impact.url } : null;
+  const covs = all.map(cov).sort((a, b) => a - b), median = covs.length ? covs[Math.floor(covs.length / 2)] : 1;
+  const pts = all.map(s => ({ s, c:cov(s), p:people(s) })).filter(x => x.p && x.p.n >= 10);
+  if (!pts.length) return `<div class="card empty"><h1 class="display" style="margin:0 0 8px;font-size:28px">Blind spots</h1>No situation in the last two weeks says how many people are affected yet. This fills in as the reporting gives numbers.</div>`;
+  const X0 = 70, X1 = 620, Y0 = 40, Y1 = 440;
+  const lx = Math.log10, xmin = -1, xmax = Math.max(1.5, Math.ceil(lx(Math.max(...pts.map(p => p.c))) * 2) / 2);
+  const ymin = 3, ymax = 9;
+  const px = c => X0 + (clamp(lx(c), xmin, xmax) - xmin) / (xmax - xmin) * (X1 - X0);
+  const py = n => Y1 - (clamp(lx(n), ymin, ymax) - ymin) / (ymax - ymin) * (Y1 - Y0);
+  const blindTest = x => x.p.n >= 1e5 && x.c <= median;
+  const blind = pts.filter(blindTest).sort((a, b) => b.p.n / b.c - a.p.n / a.c);
+  const labelled = new Set(pts.slice().sort((a, b) => b.p.n - a.p.n).slice(0, 8).map(x => x.s.id));
+  const fmtN = n => n >= 1e9 ? (n / 1e9).toFixed(1).replace(/\.0$/, "") + "B" : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M" : n >= 1e3 ? Math.round(n / 1e3) + "K" : String(n);
+  const xt = []; for (let v = Math.ceil(xmin); v <= xmax; v++) xt.push(v);
+  return `
+  <section style="display:flex;flex-direction:column;gap:6px">
+    <h1 class="display" style="margin:0;font-size:32px">Blind spots</h1>
+    <p style="margin:0;color:var(--ink2);max-width:70ch">Situations from the last two weeks plotted by how many people the reporting says are affected, against how much coverage they get. Top left is where many people are affected and few outlets are looking.</p>
+  </section>
+  <div class="blind">
+    <figure class="card plot" style="margin:0">
+      <svg viewBox="0 0 640 500" role="img" aria-label="People affected against coverage. ${blind.length} situations are in the blind-spot corner.">
+        <rect x="${X0}" y="${Y0}" width="${px(median) - X0}" height="${py(1e5) - Y0}" fill="#E2531A" fill-opacity="0.08"/>
+        <text x="${X0 + 8}" y="${Y0 + 16}" style="fill:var(--quake-ink);font-weight:600;letter-spacing:.1em">BLIND SPOTS</text>
+        <line x1="${X0}" y1="${Y0}" x2="${X0}" y2="${Y1}" stroke="#A3ACB8"/><line x1="${X0}" y1="${Y1}" x2="${X1}" y2="${Y1}" stroke="#A3ACB8"/>
+        ${[3, 5, 7, 9].map(v => `<line x1="${X0}" x2="${X1}" y1="${py(10 ** v)}" y2="${py(10 ** v)}" stroke="#E3E8EE"/><text x="${X0 - 8}" y="${py(10 ** v) + 4}" text-anchor="end">${fmtN(10 ** v)}</text>`).join("")}
+        ${xt.map(v => `<line y1="${Y0}" y2="${Y1}" x1="${px(10 ** v)}" x2="${px(10 ** v)}" stroke="#E3E8EE"/><text x="${px(10 ** v)}" y="${Y1 + 18}" text-anchor="middle">${10 ** v}</text>`).join("")}
+        <text x="${(X0 + X1) / 2}" y="${Y1 + 42}" text-anchor="middle">Coverage: outlet reports per day, last 7 days →</text>
+        <text x="16" y="16" text-anchor="start">↑ People affected (from the reporting)</text>
+        ${pts.map(x => { const b = blindTest(x), cx = px(x.c), cy = py(x.p.n), right = cx > 470;
+          return `<a href="#/s/${x.s.id}"><circle cx="${cx}" cy="${cy}" r="${b ? 7 : 5}" fill="${b ? "#E2531A" : "#111A24"}"${b ? ' stroke="rgba(226,83,26,.25)" stroke-width="6"' : ""}><title>${esc(x.s.title)}: ${fmtN(x.p.n)} people, ${x.c.toFixed(1)} reports a day</title></circle>
+            ${labelled.has(x.s.id) ? `<text class="pl" x="${right ? cx - 10 : cx + 10}" y="${cy + 4}" text-anchor="${right ? "end" : "start"}">${esc(x.s.title.length > 30 ? x.s.title.slice(0, 28) + "…" : x.s.title)}</text>` : ""}</a>`; }).join("")}
+      </svg>
+    </figure>
+    <section class="bl-list" aria-labelledby="blh">
+      <h2 id="blh" class="display" style="margin:0;font-size:16px;letter-spacing:.04em">Most overlooked</h2>
+      ${blind.length ? blind.slice(0, 6).map(x => `<div class="card bl-item">
+        <a href="#/s/${x.s.id}" style="font-weight:600;font-size:16px;color:var(--ink);text-decoration:none">${esc(x.s.title)}</a>
+        <span class="label" style="color:var(--quake-ink)">${fmtN(x.p.n)} people · ${x.c.toFixed(1)} reports a day</span>
+        <q>${esc(x.p.quote)}</q>${safeUrl(x.p.url) ? `<a href="${esc(x.p.url)}" target="_blank" rel="noopener" style="font-size:13px">Where the number comes from</a>` : ""}
+      </div>`).join("") : `<p class="card bl-item" style="margin:0">Nothing sits in the blind-spot corner right now: every situation with a large number of people affected is getting at least typical coverage.</p>`}
+      <p style="margin:0;font-size:12.5px;color:var(--ink3)">Numbers are taken from the reporting itself, such as people displaced, killed or at risk. They are rough and can lag.</p>
+    </section>
+  </div>`;
+}
+
+/* ---------- shell ---------- */
+function renderStatus(){
+  const st = $("#status"); if (!S.data) return;
+  const gen = Date.parse(S.data.generated), stale = Date.now() - gen > 45 * 6e4;
+  st.innerHTML = `${stale ? `<span class="warn">Last reading ${ago(gen, Date.now())}</span>` : `<span class="ok">● Live</span><span>Updated ${ago(gen, Date.now())}</span>`}
+    <span>${S.data.feeds_ok}/${S.data.feeds_total} feeds</span>${S.data.ai ? "<span>Summaries by Claude</span>" : ""}`;
+}
+function route(){
+  const h = location.hash || "#/";
+  if (h.startsWith("#/s/")) return { name:"sit", id:decodeURIComponent(h.slice(4)) };
+  if (h === "#/minute") return { name:"minute" };
+  if (h === "#/blind") return { name:"blind" };
+  return { name:"home" };
+}
+function render(keepScroll){
+  if (!S.data) return;
+  computeSince();
+  const r = route(), view = $("#view"), y = window.scrollY;
+  document.querySelectorAll("[data-nav]").forEach(a => a.toggleAttribute("aria-current", a.dataset.nav === (r.name === "sit" ? "home" : r.name)));
+  document.querySelectorAll("[data-nav]").forEach(a => { if (a.hasAttribute("aria-current")) a.setAttribute("aria-current", "page"); });
+  if (r.name !== "minute" && "speechSynthesis" in window && P.speaking){ P.speaking = false; speechSynthesis.cancel(); }
+  view.innerHTML = r.name === "sit" ? viewSituation(r.id) : r.name === "minute" ? viewMinute() : r.name === "blind" ? viewBlind() : viewHome();
+  document.title = r.name === "sit" && S.byId.get(r.id) ? `${S.byId.get(r.id).title} · TREMOR` : "TREMOR";
+  if (r.name === "minute"){ P.t0 = performance.now(); playerCard(); playerTick(); }
+  renderStatus();
+  if (keepScroll) window.scrollTo(0, y);
+}
+function markRead(){
+  S.lastSeen = Date.now(); store.set("tremor.lastSeen", S.lastSeen); S.sinceMode = "visit"; render(true);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act],[data-desk]"); if (!b) return;
+  if (b.dataset.desk){ S.desk = b.dataset.desk; render(true); return; }
+  const a = b.dataset.act;
+  if (a === "markread") markRead();
+  else if (a === "quiet"){ S.showQuiet = !S.showQuiet; render(true); }
+  else if (a === "follow"){ const id = b.dataset.id; S.follow.has(id) ? S.follow.delete(id) : S.follow.add(id); store.set("tremor.follow", [...S.follow]); render(true); }
+  else if (a === "pprev") go(-1);
+  else if (a === "pnext") go(1);
+  else if (a === "pplay"){
+    if (P.done){ P.done = false; P.paused = false; P.i = 0; P.t0 = performance.now(); playerCard(); }
+    else if (P.paused){ P.paused = false; P.t0 = performance.now() - (P.pausedAt || 0); }
+    else { P.paused = true; P.pausedAt = performance.now() - P.t0; }
+    playerTick();
+  }
+  else if (a === "speak"){ P.speaking = !P.speaking; renderPlayButtons(); if (P.speaking) speak(); else speechSynthesis.cancel(); }
+});
+document.addEventListener("change", e => { if (e.target.id === "sinceSel"){ S.sinceMode = e.target.value; render(true); } });
+document.addEventListener("input", e => {
+  if (e.target.id !== "q") return;
+  S.q = e.target.value; const pos = e.target.selectionStart; render(true);
+  const q = $("#q"); if (q){ q.focus(); q.setSelectionRange(pos, pos); }
+});
+document.addEventListener("keydown", e => {
+  if (route().name !== "minute" || e.target.closest("input,select,textarea")) return;
+  if (e.key === "ArrowRight") go(1); else if (e.key === "ArrowLeft") go(-1);
+});
+window.addEventListener("hashchange", () => { if (route().name === "minute") { P.i = 0; P.paused = false; P.done = false; } render(); window.scrollTo(0, 0); });
+// "since you left" moves forward when you leave, but not on a quick reload
+function leaving(){ if (Date.now() - S.openedAt > 20000) store.set("tremor.lastSeen", Date.now()); }
+window.addEventListener("pagehide", leaving);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") leaving(); else S.openedAt = Date.now(); });
+$("#applyUpdate").addEventListener("click", () => { S.data = S.pending; S.pending = null; $("#banner").hidden = true; prep(); render(true); });
+setInterval(playerTick, 250);
+setInterval(() => { if (S.data) renderStatus(); }, 30e3);
+
+async function load(first){
+  try {
+    const r = await fetch("state.json?t=" + Date.now(), { cache:"no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    if (!j || !Array.isArray(j.situations)) throw new Error("bad data");
+    if (first || !S.data){ S.data = j; prep(); render(); return; }
+    if (j.generated !== S.data.generated){
+      if (route().name === "home" && window.scrollY < 200){ S.data = j; prep(); render(true); }
+      else { S.pending = j; $("#banner").hidden = false; }
+    }
+  } catch(e){
+    if (first) $("#view").innerHTML = `<div class="card empty"><h1 class="display" style="margin:0 0 8px;font-size:26px">Warming up</h1>TREMOR hasn't taken its first reading yet. The first update arrives within 15 minutes of setup; refresh then.</div>`;
+  }
+}
+load(true);
+setInterval(() => load(false), 5 * 6e4);
+})();
+</script>
+</body>
+</html>

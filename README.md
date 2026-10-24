@@ -1,4 +1,11 @@
-# GLOBEWIRE
+# GLOBEWIRE and TREMOR
+
+Two ways to read the world's news from the same feeds:
+
+- **GLOBEWIRE** (`/`): every story as a planet on a radar around Earth.
+- **TREMOR** (`/tremor/`): a seismograph of ongoing situations, showing what moved since you last looked.
+
+## GLOBEWIRE
 
 World news on a radar around Earth. Every story is a planet:
 
@@ -44,3 +51,25 @@ Keep `globewire.html` next to `globewire.py`.
 
 - **Feeds:** add a line to `FEEDS` in `globewire.py` with the name, category (or `None` to auto-sort), default region and URL.
 - **Places:** where a story happens comes from `PLACES`. Each entry has a name, region, longitude and keywords. Join multi-word keywords with an underscore (`white_house`). Start a keyword with `=` to match its exact capitalisation (`=US`).
+
+## TREMOR
+
+TREMOR groups developments into situations, meaning ongoing stories followed over days, and draws each one as a seismograph trace.
+
+- **Situations, not articles.** A follow-up story joins its situation when its headlines share enough distinctive words with it.
+- **Since you left.** Your browser remembers your last visit, and the blue line marks it. "The minute" lists only what moved since then, biggest first, and can read it aloud.
+- **Magnitude** combines how many independent outlets carry a development, how fast it spread, and whether it moved an existing situation. M4 and up shows in orange.
+- **Next tremors** are dates mentioned in the reporting that are still ahead.
+- **Blind spots** plots people affected (numbers taken from the reporting) against coverage.
+
+`tremor.py` runs after `globewire.py` in the workflow and keeps three weeks of history. Run it locally with `python3 tremor.py` and open http://localhost:8018.
+
+### Optional: AI summaries
+
+With an API key, Claude writes each situation's name, a one-line state, what it was before, claims with the outlets that confirm or dispute them, and how the outlets frame it. Without a key TREMOR uses the headlines as they are.
+
+1. Create a key at https://console.anthropic.com.
+2. In this repository, go to **Settings → Secrets and variables → Actions → New repository secret**. Name it `ANTHROPIC_API_KEY`.
+3. Optional: add a repository **variable** `TREMOR_MODEL` to choose the model. The default is `claude-opus-5-5`. `claude-haiku-5-5` costs far less.
+
+Summaries are written only for situations with a new development of magnitude 4 or more. That's at most 4 per run, and each situation is summarized at most once every 3 hours. You can change these limits with the `TREMOR_AI_MAX` and `TREMOR_AI_EVERY_HOURS` environment variables.

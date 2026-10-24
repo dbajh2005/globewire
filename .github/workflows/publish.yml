@@ -1,5 +1,6 @@
-# Rebuilds the news sky every 15 minutes and publishes it with GitHub Pages.
+# Rebuilds GLOBEWIRE and TREMOR every 15 minutes and publishes both with GitHub Pages.
 # One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Optional: add an ANTHROPIC_API_KEY secret to have Claude write TREMOR's names, state lines and claims.
 name: Publish news sky
 
 on:
@@ -21,7 +22,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      TREMOR_MODEL: ${{ vars.TREMOR_MODEL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,9 +33,39 @@ jobs:
           python-version: "3.12"
       - id: pages
         uses: actions/configure-pages@v5
-      - name: Fetch every feed and build the site
+
+      - name: Fetch every feed and build GLOBEWIRE
         # The last published news.json is the baseline for spotting breaking stories.
         run: python3 globewire.py --site site --previous "${{ steps.pages.outputs.base_url }}/news.json"
+
+      # TREMOR remembers three weeks of history. It reads its last state from the live site,
+      # with a cached copy as a backup in case the site can't be reached.
+      - name: Restore TREMOR's memory
+        uses: actions/cache/restore@v4
+        with:
+          path: tremor-state.json
+          key: tremor-state-${{ github.run_id }}
+          restore-keys: tremor-state-
+
+      - name: Install the Claude SDK (only when an API key is set)
+        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        run: pip install --quiet anthropic
+
+      - name: Update TREMOR
+        continue-on-error: true   # a TREMOR problem never stops GLOBEWIRE from publishing
+        run: >
+          python3 tremor.py --news site/news.json
+          --previous "${{ steps.pages.outputs.base_url }}/tremor/state.json"
+          --previous tremor-state.json
+          --site site/tremor --save tremor-state.json
+
+      - name: Save TREMOR's memory
+        if: ${{ hashFiles('tremor-state.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tremor-state.json
+          key: tremor-state-${{ github.run_id }}
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
