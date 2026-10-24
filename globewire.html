@@ -1,0 +1,991 @@
+<title>GLOBEWIRE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a tilted radar disk with Earth at the centre. Direction from Earth = where in the world (sectors run
+   eastward from the Americas), distance = how old, size = how many outlets, a pulse = breaking. A tractor beam
+   pulls a story into the hold on the right. The star chart below lists everything as plain text. */
+:root{
+  --void:#04050c; --deep:#0a0d1f; --panel:rgba(11,14,32,.95); --line:rgba(160,175,255,.16); --line-hi:rgba(160,175,255,.32);
+  --ink:#e9ecff; --dim:#9aa3c7; --faint:#646d97;
+  --world:#4cc9f0; --politics:#ff6b5a; --finance:#f5c451; --tech:#a78bfa; --science:#7ee081;
+  --beam:#8be9ff; --warn:#ff8a6b;
+  --f-display:"Unbounded", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--void);color:var(--ink);margin:0}
+body{
+  font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:16px 40px;
+}
+.wrap{max-width:1280px;margin-inline:auto;display:flex;flex-direction:column;gap:28px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--beam);outline-offset:2px}
+code{font-family:var(--f-mono);font-size:.9em;color:var(--ink)}
+
+/* ---------- the sky ---------- */
+.sky{
+  border:1px solid var(--line);border-radius:22px;overflow:hidden;
+  background:
+    radial-gradient(55% 45% at 20% 25%, rgba(118,78,210,.18), transparent 70%),
+    radial-gradient(45% 40% at 84% 78%, rgba(36,150,200,.14), transparent 70%),
+    var(--void);
+  display:grid;grid-template-rows:auto 1fr auto;
+}
+.hud-top,.hud-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;padding:14px 18px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;min-width:0}
+.logo{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.14em}
+.logo b{color:var(--beam);font-weight:700}
+.status{font-family:var(--f-mono);font-size:12px;color:var(--dim);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.status .warn{color:var(--void);background:var(--warn);padding:1px 8px;border-radius:999px;font-weight:600}
+.status .live{color:var(--science)}
+.hud-right{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-family:var(--f-mono);font-size:12px;color:var(--dim)}
+.clock{font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip-region{cursor:pointer;border:1px solid var(--beam);background:rgba(139,233,255,.12);color:var(--beam);border-radius:999px;padding:3px 12px;font-family:var(--f-mono);font-size:12px}
+
+.stage{position:relative;height:clamp(440px,66vh,720px);min-height:0;touch-action:manipulation}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sectors{position:absolute;inset:0;pointer-events:none;z-index:1}
+.sector{
+  position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;white-space:nowrap;
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+  background:rgba(4,5,12,.78);border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+}
+.sector span{color:var(--faint);margin-left:4px}
+.sector:hover{color:var(--ink);border-color:var(--line-hi)}
+.sector[aria-pressed="true"]{color:var(--void);background:var(--beam);border-color:var(--beam)}
+.sector[aria-pressed="true"] span{color:var(--void)}
+.tip{
+  position:absolute;z-index:3;pointer-events:none;max-width:290px;
+  background:var(--panel);border:1px solid var(--line-hi);border-radius:12px;padding:8px 12px;
+  box-shadow:0 10px 30px -10px #000;display:flex;flex-direction:column;gap:2px;
+}
+.tip .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+.tip .h{font-weight:700;line-height:1.3;text-wrap:balance}
+.tip .m{font-family:var(--f-mono);font-size:11px;color:var(--dim)}
+.tip .b{font-family:var(--f-mono);font-size:11px;color:var(--warn)}
+.toast{position:absolute;left:18px;bottom:12px;z-index:2;font-family:var(--f-mono);font-size:12px;color:var(--beam);pointer-events:none}
+
+.flyhud{
+  position:absolute;z-index:2;top:10px;left:0;right:0;margin-inline:auto;width:fit-content;max-width:calc(100% - 24px);
+  display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;justify-content:center;
+  background:var(--panel);border:1px solid var(--line-hi);border-radius:22px;padding:6px 8px 6px 16px;
+}
+.flyhud .count{font-family:var(--f-display);font-size:18px;font-variant-numeric:tabular-nums;color:var(--beam);min-width:3.2ch}
+.fdots{display:flex;gap:5px}
+.fdots i{width:9px;height:9px;border-radius:50%;border:1px solid var(--c);opacity:.5}
+.fdots i.done{background:var(--c);opacity:.5}
+.fdots i.now{background:var(--c);opacity:1;box-shadow:0 0 8px var(--c)}
+
+.hud-bottom{border-top:1px solid var(--line);align-items:flex-start}
+.key{display:flex;flex-direction:column;gap:6px;min-width:0}
+.desks{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px}
+.desks span{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.desks i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.desks em{font-style:normal;color:var(--faint);font-family:var(--f-mono);font-size:12px}
+.howto{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:13px;color:var(--dim)}
+.howto b{color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{
+  cursor:pointer;border:1px solid var(--line-hi);background:rgba(255,255,255,.03);border-radius:999px;
+  padding:7px 16px;font-size:14px;font-weight:700;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+}
+.btn:hover{border-color:var(--beam)}
+.btn.primary{border-color:var(--beam);background:rgba(139,233,255,.14);color:var(--beam)}
+.btn.ghost{font-weight:400;color:var(--dim)}
+.btn.small{padding:4px 12px;font-size:13px}
+
+/* ---------- the hold (reading panel) ---------- */
+.hold{
+  position:fixed;z-index:20;
+  top:calc(16px + env(safe-area-inset-top, 0px));right:max(16px, env(safe-area-inset-right, 0px));
+  width:min(410px, calc(100% - 32px));max-height:calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));overflow:auto;
+  background:var(--panel);border:1px solid var(--line-hi);border-radius:20px;padding:20px;
+  box-shadow:0 30px 60px -20px #000;backdrop-filter:blur(10px);
+  display:flex;flex-direction:column;gap:12px;animation:holdIn .28s ease-out;
+}
+@keyframes holdIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hold-top{display:flex;gap:14px;align-items:flex-start}
+.mini{width:88px;height:88px;flex:none}
+.hold-meta{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;padding-top:6px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+.when,.sigline{font-family:var(--f-mono);font-size:12px;color:var(--dim)}
+.x{cursor:pointer;background:transparent;border:1px solid var(--line-hi);border-radius:50%;width:34px;height:34px;flex:none;color:var(--dim)}
+.hold h2{font-family:var(--f-display);font-weight:500;font-size:21px;line-height:1.3;margin:0;text-wrap:balance}
+.hold h3{font-family:var(--f-display);font-weight:500;font-size:18px;margin:0}
+.hold .sum{margin:0}
+.hold .also{margin:0;font-size:13px;color:var(--dim)}
+.hold .acts{display:flex;flex-wrap:wrap;gap:8px}
+.breaking{align-self:flex-start;font-family:var(--f-mono);font-size:12px;color:var(--warn);border:1px solid rgba(255,138,107,.45);background:rgba(255,138,107,.12);border-radius:999px;padding:2px 10px}
+.cover h4{margin:0 0 4px;font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.cover ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.cover li{display:flex;flex-direction:column;gap:1px;padding-block:7px;border-top:1px solid var(--line)}
+.cover .src{font-family:var(--f-mono);font-size:11px;color:var(--c)}
+.cover a{color:var(--ink);text-decoration:none;line-height:1.35}
+.cover a:hover{color:var(--beam);text-decoration:underline}
+.nolink{font-size:13px;color:var(--faint);border:1px dashed var(--faint);border-radius:999px;padding:6px 14px}
+.saved-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.saved-list li{display:flex;gap:10px;align-items:flex-start;padding-block:10px;border-top:1px solid var(--line)}
+.saved-list .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;margin-top:6px;box-shadow:0 0 8px var(--c)}
+.saved-list .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.linkish{all:unset;cursor:pointer;font-weight:700;line-height:1.35}
+.linkish:hover{color:var(--beam)}
+.transmission{white-space:pre-wrap;border-left:2px solid var(--beam);padding-left:12px;margin:0}
+
+/* ---------- star chart ---------- */
+.chart-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 20px}
+.chart-head h2{font-family:var(--f-display);font-weight:500;font-size:22px;margin:0;letter-spacing:.04em}
+.chart-head p{margin:0;color:var(--dim);font-size:14px;max-width:70ch}
+.chart{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px}
+.col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.col h3{display:flex;align-items:center;gap:9px;margin:0 0 4px;font-family:var(--f-mono);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--c);padding-bottom:8px;border-bottom:1px solid var(--line)}
+.col h3 .dot{width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.col h3 .n{margin-left:auto;color:var(--faint)}
+.col ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.row{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:8px 6px;border-radius:10px;width:100%;box-sizing:border-box}
+.row:hover{background:rgba(255,255,255,.04)}
+.row:focus-visible{outline:2px solid var(--beam)}
+.row .t{font-weight:700;line-height:1.35;text-wrap:pretty}
+.row .m{font-family:var(--f-mono);font-size:11.5px;color:var(--dim);display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.row .hot{color:var(--warn)}
+.sd{display:inline-flex;gap:3px}
+.sd i{width:6px;height:6px;border-radius:50%;background:var(--c);opacity:.22}
+.sd i.on{opacity:1}
+.kept{color:var(--beam)}
+.more-btn{all:unset;cursor:pointer;font-family:var(--f-mono);font-size:12px;color:var(--dim);padding:4px 6px}
+.more-btn:hover{color:var(--ink)}
+.empty{color:var(--faint);font-size:14px;margin:0;padding:6px}
+.foot{color:var(--faint);font-size:13px;margin:0}
+
+@media (max-width:1060px){ .chart{grid-template-columns:minmax(0,1fr)} .col ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px} }
+@media (max-width:760px){
+  .hold{top:auto;bottom:0;right:0;left:0;width:100%;max-height:74%;border-radius:20px 20px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px))}
+  .col ol{grid-template-columns:minmax(0,1fr)}
+  .stage{height:clamp(380px,108vw,520px)}
+  .hud-top,.hud-bottom{padding:12px}
+  .sector{font-size:10px;padding:2px 8px;letter-spacing:.08em}
+}
+@media (prefers-reduced-motion:reduce){ .hold{animation:none} }
+</style>
+
+<div class="wrap">
+  <section class="sky" aria-label="News around Earth">
+    <div class="hud-top">
+      <div class="brand"><span class="logo">GLOBE<b>WIRE</b></span><span class="status" id="status">Scanning the sky…</span></div>
+      <div class="hud-right">
+        <button class="chip-region" id="regionChip" hidden></button>
+        <span class="clock" id="clock"></span>
+      </div>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="space" role="img" aria-label="Stories as planets around Earth. Direction shows where in the world, distance shows age, size shows how many outlets carry it. The star chart below lists every story."></canvas>
+      <div class="sectors" id="sectors" role="group" aria-label="Show one part of the world"></div>
+      <div class="tip" id="tip" hidden></div>
+      <div class="flyhud" id="flyhud" hidden>
+        <span class="count" id="fcount">60</span><span class="fdots" id="fdots"></span>
+        <button class="btn small" data-act="fpause" id="fpause">Pause</button>
+        <button class="btn small" data-act="anchor" id="anchorBtn" hidden>Mission control briefing</button>
+        <button class="btn small ghost" data-act="fstop">End flyby</button>
+      </div>
+      <div class="toast" id="toast" aria-live="polite"></div>
+    </div>
+    <div class="hud-bottom">
+      <div class="key">
+        <div class="desks" id="desks"></div>
+        <div class="howto"><span><b>Direction</b> where in the world</span><span><b>Distance from Earth</b> how old</span><span><b>Size</b> how many outlets</span><span><b>Pulse</b> breaking</span></div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="flyby">60-second flyby</button>
+        <button class="btn" id="savedBtn">Saved <span id="scount"></span></button>
+        <button class="btn ghost" id="refresh" hidden>Check for updates</button>
+        <button class="btn ghost" id="loadTape">Load tape</button>
+        <input type="file" id="tapeFile" accept="application/json,.json" hidden>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="chartTitle" style="display:flex;flex-direction:column;gap:16px">
+    <div class="chart-head"><h2 id="chartTitle">Star chart</h2><p id="chartMeta"></p></div>
+    <div class="chart" id="chart"></div>
+    <p class="foot" id="foot"></p>
+  </section>
+</div>
+
+<aside class="hold" id="hold" hidden aria-live="polite"></aside>
+
+<script>
+(() => {
+"use strict";
+
+const CATS = [
+  { k:"world",    name:"World",    hue:195, c:"var(--world)" },
+  { k:"politics", name:"Politics", hue:6,   c:"var(--politics)" },
+  { k:"finance",  name:"Finance",  hue:43,  c:"var(--finance)" },
+  { k:"tech",     name:"Tech",     hue:258, c:"var(--tech)" },
+  { k:"science",  name:"Science",  hue:120, c:"var(--science)" },
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.k, c]));
+// Sectors run eastward around Earth, starting with the Americas on the left. Worldwide stories sit over the Pacific.
+const SECTORS = [
+  { k:"AMERICAS", name:"Americas",     lon:[-125, -35] },
+  { k:"EUROPE",   name:"Europe",       lon:[-10, 40] },
+  { k:"AFRICA",   name:"Africa",       lon:[-17, 50] },
+  { k:"MIDEAST",  name:"Middle East",  lon:[33, 56] },
+  { k:"ASIA-PAC", name:"Asia-Pacific", lon:[65, 178] },
+  { k:"GLOBAL",   name:"Worldwide",    lon:null },
+];
+const REGION_NAME = Object.fromEntries(SECTORS.map(s => [s.k, s.name]));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+
+const S = { mode:"demo", data:null, byId:new Map(), region:"ALL", clips:[], expand:{}, generated:null, confirmClear:false, pending:null };
+
+/* ---------- per-viewer storage ---------- */
+function restore(){ try { const c = JSON.parse(localStorage.getItem("gw.clips") || "[]"); if (Array.isArray(c)) S.clips = c.slice(0, 200); } catch(e){} }
+function persist(){ try { localStorage.setItem("gw.clips", JSON.stringify(S.clips)); } catch(e){} }
+
+/* ---------- demo sky: sample stories, clearly not real news (no real places attached) ---------- */
+function demoData(){
+  const m = 60e3, now = Date.now();
+  // [desk, region, outlets, minutes old, outlets at the previous update (null = steady), headline, summary]
+  const rows = [
+    ["world","MIDEAST",5,18,2,"Ceasefire talks resume after overnight shelling along disputed border","Negotiators returned to the table hours after the heaviest exchange of fire in weeks. Mediators say a prisoner swap is on the agenda."],
+    ["world","ASIA-PAC",3,140,null,"Floods displace thousands as monsoon rains swamp river delta","Emergency shelters are full in two provinces and rail links are cut. More rain is forecast through the weekend."],
+    ["world","AFRICA",2,380,null,"Coastal nations sign fisheries pact to curb illegal trawling","Six governments will share patrol data and satellite tracking to catch unlicensed fleets."],
+    ["world","EUROPE",2,720,null,"Rail strike halts commuter services across three capitals","Unions want pay rises in line with inflation. Talks are set for Monday."],
+    ["world","AMERICAS",1,1260,null,"Election observers report long queues but calm voting","Turnout looks higher than the last national vote, according to early estimates."],
+    ["politics","EUROPE",4,25,null,"Parliament passes budget after all-night session","The vote cleared by a margin of eleven. Opposition parties promise to fight the tax changes in committee."],
+    ["politics","AMERICAS",3,200,null,"Senate committee advances bill on consumer data privacy","The bill would let people see and delete data held about them. A floor vote is not yet scheduled."],
+    ["politics","EUROPE",2,540,null,"Coalition partners clash over defence spending target","The junior partner says the target can't be met without cuts elsewhere."],
+    ["politics","ASIA-PAC",2,1000,null,"Regional bloc agrees joint position ahead of trade summit","Members will push for lower tariffs on farm goods and a new dispute panel."],
+    ["finance","AMERICAS",6,12,0,"Central bank holds rates, signals patience on cuts","Policymakers voted to keep borrowing costs unchanged and said they want more evidence inflation is cooling."],
+    ["finance","GLOBAL",4,90,null,"Oil slips as inventories build for a second week","Brent fell about 1% in early trading. Analysts point to weaker demand from refiners."],
+    ["finance","ASIA-PAC",3,300,null,"Chipmaker shares jump on record quarterly orders","Data-centre demand drove bookings up by a third on the year."],
+    ["finance","EUROPE",2,610,null,"Retail sales beat forecasts despite higher borrowing costs","Clothing and online sales led the gains. Food spending was flat."],
+    ["finance","AMERICAS",2,1150,null,"Bond yields ease as inflation cools for a third month","Ten-year yields fell to their lowest level since the spring."],
+    ["tech","GLOBAL",5,30,null,"New open-weight AI model tops coding benchmarks","The release comes with a permissive licence and a smaller version that runs on a laptop."],
+    ["tech","EUROPE",3,66,null,"Ransomware gang hits hospital network, forcing paper records","Planned operations were postponed at four sites while systems are restored."],
+    ["tech","ASIA-PAC",2,420,null,"Phone maker delays foldable launch over hinge defects","The company says units in testing failed earlier than its durability target."],
+    ["tech","GLOBAL",2,840,null,"Browser update blocks third-party tracking by default","Advertisers say the change will cut the value of some ad slots."],
+    ["tech","AFRICA",1,1380,null,"Satellite internet service expands to rural schools","The first 400 schools are connected, with 2,000 more planned next year."],
+    ["science","GLOBAL",4,45,null,"Telescope spots water vapour on a temperate exoplanet","The planet sits in its star's habitable zone, about 120 light years away."],
+    ["science","AFRICA",3,260,null,"Trial finds once-yearly jab cuts malaria cases by half","Researchers followed 6,000 children across three seasons."],
+    ["science","EUROPE",2,900,null,"Glacier retreat doubles in a decade, survey finds","Alpine glaciers lost more ice in the past ten years than in the previous twenty."],
+    ["science","ASIA-PAC",1,1320,null,"Deep-sea expedition logs dozens of possible new species","Specimens include a glass sponge and several kinds of sea cucumber."],
+  ];
+  return {
+    app:"globewire", version:2, demo:true, generated:new Date(now).toISOString(), sources:[],
+    stories: rows.map((r,i) => ({
+      id:"demo"+i, cat:r[0], region:r[1], place:null, lon:null, signal:r[2], ts:now - r[3]*m,
+      breaking:r[4] !== null, prev_signal:r[4] || 0, title:r[5], summary:r[6],
+      url:"", source:"Sample wire", sources:Array.from({ length:r[2] }, (_, j) => "Sample feed " + (j + 1)), items:[],
+    })),
+  };
+}
+
+/* ---------- data ---------- */
+const valid = j => j && Array.isArray(j.stories) && j.stories.length > 0;
+const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
+function setData(j, mode){
+  const clean = j.stories.filter(s => s && s.title).map((s, i) => ({
+    id:String(s.id || "s" + i), title:String(s.title), summary:String(s.summary || ""),
+    url:safeUrl(s.url), source:String(s.source || "Wire"),
+    sources:Array.isArray(s.sources) ? s.sources.map(String) : [String(s.source || "Wire")],
+    items:Array.isArray(s.items) ? s.items.filter(x => x && x.title).map(x => ({ source:String(x.source || ""), title:String(x.title), url:safeUrl(x.url) })) : [],
+    signal:Math.max(1, +s.signal || 1), cat:CAT[s.cat] ? s.cat : "world",
+    region:REGION_NAME[s.region] ? s.region : "GLOBAL",
+    place:s.place ? String(s.place) : null, lon:Number.isFinite(+s.lon) && s.lon !== null ? +s.lon : null,
+    ts:Math.min(Date.now(), +s.ts || Date.now()), breaking:!!s.breaking, prev_signal:+s.prev_signal || 0,
+  }));
+  S.data = { ...j, stories:clean };
+  S.byId = new Map(clean.map(s => [s.id, s]));
+  S.mode = mode; S.generated = j.generated ? new Date(j.generated) : new Date();
+  $("refresh").hidden = mode !== "live";
+  $("loadTape").hidden = mode === "live";
+}
+const ageH = s => (Date.now() - s.ts) / 3.6e6;
+const score = s => s.signal * 3 + Math.max(0, 24 - ageH(s)) / 6 + (s.breaking ? 4 : 0);
+const inRegion = s => S.region === "ALL" || s.region === S.region;
+const stories = () => (S.data ? S.data.stories : []).filter(inRegion);
+const byCat = k => stories().filter(s => s.cat === k).sort((a, b) => score(b) - score(a));
+function briefPicks(n = 7){
+  const picks = [], seen = new Set();
+  for (const c of CATS){ const s = byCat(c.k)[0]; if (s){ picks.push(s); seen.add(s.id); } }
+  for (const s of [...stories()].sort((a, b) => score(b) - score(a))){ if (picks.length >= n) break; if (!seen.has(s.id)){ picks.push(s); seen.add(s.id); } }
+  return picks;
+}
+
+/* ---------- helpers ---------- */
+const esc = t => String(t).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+function ago(ts){
+  const min = Math.max(0, Math.round((Date.now() - ts) / 60e3));
+  if (min < 60) return min + "m ago";
+  if (min < 48 * 60) return Math.round(min / 60) + "h ago";
+  return new Date(ts).toLocaleDateString(undefined, { day:"numeric", month:"short" });
+}
+const where = s => s.place ? `${REGION_NAME[s.region]} · ${s.place}` : REGION_NAME[s.region];
+const sigDots = n => `<span class="sd" aria-label="Carried by ${n} outlet${n > 1 ? "s" : ""}">${[1,2,3,4,5].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`;
+const breakingText = s => s.prev_signal ? `Breaking · coverage jumped from ${s.prev_signal} to ${s.signal} outlets` : `Breaking · appeared on ${s.signal} outlets at once`;
+const isKept = id => S.clips.some(c => c.id === id);
+const find = id => S.byId.get(id) || S.clips.find(c => c.id === id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function rng(str){
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  let a = h >>> 0;
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+let toastT = 0;
+function toast(msg){ const t = $("toast"); t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.textContent = "", 2600); }
+
+/* ---------- planet looks ---------- */
+const LOOK = new Map();
+function look(s){
+  const key = s.id + ":" + s.signal;
+  if (LOOK.has(key)) return LOOK.get(key);
+  const r = rng(s.id);
+  const o = {
+    hue:CAT[s.cat].hue + (r() - .5) * 28, sat:55 + r() * 25, lit:50 + r() * 12,
+    bands:Array.from({ length:2 + Math.floor(r() * 4) }, () => ({ y:r() * 2 - 1, h:.08 + r() * .24, a:.07 + r() * .17, dark:r() > .5 })),
+    ring:s.signal >= 3, tilt:-.4 + r() * .8, ringW:1.7 + r() * .6,
+  };
+  LOOK.set(key, o); return o;
+}
+function drawRing(c, x, y, r, o, back){
+  c.save(); c.translate(x, y); c.rotate(o.tilt);
+  c.strokeStyle = `hsla(${o.hue},60%,82%,${back ? .35 : .7})`; c.lineWidth = Math.max(1, r * .16);
+  c.beginPath(); c.ellipse(0, 0, r * o.ringW, r * .36, 0, back ? Math.PI : 0, back ? Math.PI * 2 : Math.PI); c.stroke();
+  c.restore();
+}
+function drawPlanet(c, x, y, r, o, lx, ly, alpha, hl, glow = 0){
+  c.save(); c.globalAlpha = alpha;
+  const hr = r * (hl ? 3.4 : 2.3 + glow * 1.4);
+  const g = c.createRadialGradient(x, y, r * .7, x, y, hr);
+  g.addColorStop(0, `hsla(${o.hue},90%,68%,${hl ? .5 : .18 + glow * .4})`); g.addColorStop(1, `hsla(${o.hue},90%,68%,0)`);
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, hr, 0, 7); c.fill();
+  if (o.ring) drawRing(c, x, y, r, o, true);
+  const b = c.createRadialGradient(x + lx * r * .45, y + ly * r * .45, r * .1, x, y, r);
+  b.addColorStop(0, `hsl(${o.hue},${o.sat}%,${Math.min(92, o.lit + 24 + glow * 8)}%)`);
+  b.addColorStop(.55, `hsl(${o.hue},${o.sat}%,${o.lit}%)`);
+  b.addColorStop(1, `hsl(${o.hue},${o.sat}%,${Math.max(8, o.lit - 32)}%)`);
+  c.beginPath(); c.arc(x, y, r, 0, 7); c.fillStyle = b; c.fill();
+  c.save(); c.clip();
+  for (const bd of o.bands){ c.fillStyle = bd.dark ? `rgba(0,0,0,${bd.a})` : `rgba(255,255,255,${bd.a})`; c.fillRect(x - r, y + bd.y * r, r * 2, bd.h * r); }
+  const sh = c.createRadialGradient(x + lx * r * .5, y + ly * r * .5, r * .3, x + lx * r * .5, y + ly * r * .5, r * 1.7);
+  sh.addColorStop(0, "rgba(2,3,12,0)"); sh.addColorStop(.55, "rgba(2,3,12,0)"); sh.addColorStop(1, "rgba(2,3,12,.8)");
+  c.fillStyle = sh; c.fillRect(x - r, y - r, r * 2, r * 2);
+  c.restore();
+  if (o.ring) drawRing(c, x, y, r, o, false);
+  if (hl){ c.strokeStyle = `hsla(${o.hue},100%,82%,.9)`; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r + 6, 0, 7); c.stroke(); }
+  c.restore();
+}
+
+/* ---------- the map: geometry and layout ---------- */
+const stage = $("stage"), cv = $("space"), ctx = cv.getContext("2d");
+let W = 0, H = 0, DPR = 1, geo = null, SECT = [], planets = [], hover = null, kbd = -1, visible = true;
+const par = { x:0, y:0, tx:0, ty:0 };
+const G = { p:null, phase:"none", t0:0, dur:700, fx:0, fy:0, tm:0 };
+const T0 = performance.now();
+const STARS = Array.from({ length:260 }, (_, i) => { const r = rng("star" + i); return { x:r(), y:r(), z:r() < .7 ? 1 : r() < .8 ? 2 : 3, ph:r() * 6.28, sp:.4 + r() * 2 }; });
+const AGE_MAX = 30, RINGS = [[1, "1h"], [6, "6h"], [24, "24h"]];
+let shoot = null, nextShoot = 5;
+
+function geom(){
+  const narrow = W < 640;
+  const cx = W / 2, cy = H / 2 + 8;
+  const Rx = Math.max(60, W / 2 - (narrow ? 26 : 74));
+  const Ry = Math.max(50, Math.min(H / 2 - 36, Rx * (narrow ? .92 : .56)));
+  const earthR = Math.max(14, Math.min(Rx, Ry) * .11);
+  geo = { cx, cy, Rx, Ry, earthR, r0:Math.min(.4, earthR * 2.1 / Ry) };
+}
+const ageFrac = h => geo.r0 + (1 - geo.r0) * Math.sqrt(clamp(h, 0, AGE_MAX) / AGE_MAX);
+const baseR = s => clamp(W / 1200, .58, 1) * (5 + 2.4 * Math.min(s.signal, 6));
+const deg = d => d * Math.PI / 180;
+
+function layout(){
+  if (!S.data || !geo) return;
+  const heldId = G.p && G.p.s.id;
+  const per = W < 640 ? 32 : 64;
+  const top = [...S.data.stories].sort((a, b) => score(b) - score(a)).slice(0, per);
+  const counts = Object.fromEntries(SECTORS.map(s => [s.k, 0])); top.forEach(s => counts[s.region]++);
+  const total = top.length || 1;
+  const width = k => 28 + 192 * counts[k] / total;
+  let a = 180 - width("AMERICAS") / 2;
+  SECT = SECTORS.map(sec => { const w = width(sec.k), o = { ...sec, a0:a, a1:a + w }; a += w; return o; });
+  const old = new Map(planets.map(p => [p.s.id, p]));
+  planets = top.map((s, i) => {
+    const sec = SECT.find(x => x.k === s.region), r = rng(s.id);
+    let u = sec.lon && s.lon !== null ? (s.lon - sec.lon[0]) / (sec.lon[1] - sec.lon[0]) : r();
+    u = clamp(u + (r() - .5) * .22, 0, 1);
+    const pad = Math.min(5, (sec.a1 - sec.a0) * .18);
+    const th = deg(sec.a0 + pad + (sec.a1 - sec.a0 - 2 * pad) * u), f = ageFrac(ageH(s));
+    const persp = .84 + .16 * (Math.sin(th) + 1) / 2;
+    const prev = old.get(s.id);
+    return { s, th, x:geo.cx + geo.Rx * f * Math.cos(th), y:geo.cy + geo.Ry * f * Math.sin(th), r:baseR(s) * persp, persp,
+             look:look(s), bob:r() * 6.28, born:prev ? prev.born : 0, i };
+  });
+  relax();
+  for (const p of planets){ p.bx = p.x; p.by = p.y; p.ang = Math.atan2((p.y - geo.cy) / geo.Ry, (p.x - geo.cx) / geo.Rx); }
+  if (heldId){ const p = planets.find(p => p.s.id === heldId); G.p = p || null; if (!p) G.phase = "none"; }
+  kbd = -1; hover = null; hideTip(); placeSectors();
+}
+function relax(){
+  for (let it = 0; it < 50; it++){
+    let moved = false;
+    for (let i = 0; i < planets.length; i++) for (let j = i + 1; j < planets.length; j++){
+      const a = planets[i], b = planets[j];
+      let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      const min = a.r + b.r + 4;
+      if (d < min){
+        if (d < .01){ dx = Math.cos(i + j); dy = Math.sin(i + j); d = 1; }
+        const push = (min - d) / 2; dx /= d; dy /= d;
+        a.x -= dx * push; a.y -= dy * push; b.x += dx * push; b.y += dy * push; moved = true;
+      }
+    }
+    for (const p of planets){
+      const dx = p.x - geo.cx, dy = p.y - geo.cy, d = Math.hypot(dx, dy) || 1, min = geo.earthR * 1.6 + p.r;
+      if (d < min){ p.x = geo.cx + dx / d * min; p.y = geo.cy + dy / d * min; }
+      p.x = clamp(p.x, p.r + 4, W - p.r - 4); p.y = clamp(p.y, p.r + 4, H - p.r - 4);
+    }
+    if (!moved) break;
+  }
+}
+function placeSectors(){
+  const all = S.data ? S.data.stories : [];
+  $("sectors").innerHTML = SECT.map(sec => {
+    const mid = deg((sec.a0 + sec.a1) / 2);
+    const x = clamp(geo.cx + (geo.Rx + (W < 640 ? 4 : 18)) * Math.cos(mid), 58, W - 58);
+    const y = clamp(geo.cy + (geo.Ry + 16) * Math.sin(mid), 14, H - 14);
+    const n = all.filter(s => s.region === sec.k).length;
+    return `<button class="sector" data-region="${sec.k}" aria-pressed="${S.region === sec.k}" style="left:${x}px;top:${y}px">${sec.name}<span>${n}</span></button>`;
+  }).join("");
+}
+function resize(){
+  const r = stage.getBoundingClientRect();
+  W = r.width; H = r.height; DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  geom(); layout(); requestDraw();
+}
+
+/* ---------- drawing ---------- */
+function drawStars(t){
+  par.x += (par.tx - par.x) * .05; par.y += (par.ty - par.y) * .05;
+  for (const s of STARS){
+    const px = ((s.x * W + par.x * s.z * 8) % W + W) % W, py = ((s.y * H + par.y * s.z * 8) % H + H) % H;
+    ctx.fillStyle = `rgba(222,230,255,${(.3 + .17 * s.z) * (reduce ? 1 : .65 + .35 * Math.sin(t * s.sp + s.ph))})`;
+    const sz = .5 + s.z * .55; ctx.fillRect(px, py, sz, sz);
+  }
+  if (reduce) return;
+  if (!shoot && t > nextShoot){ const r = Math.random; shoot = { x:r() * W, y:r() * H * .3, vx:300 + r() * 200, vy:110 + r() * 80, t0:t }; nextShoot = t + 8 + r() * 9; }
+  if (shoot){
+    const k = t - shoot.t0, x = shoot.x + shoot.vx * k, y = shoot.y + shoot.vy * k;
+    const g = ctx.createLinearGradient(x, y, x - shoot.vx * .18, y - shoot.vy * .18);
+    g.addColorStop(0, "rgba(255,255,255,.8)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - shoot.vx * .18, y - shoot.vy * .18); ctx.stroke();
+    if (k > 1.2) shoot = null;
+  }
+}
+const sweepAngle = t => (t / 9 % 1) * Math.PI * 2;
+function drawDisk(t){
+  const { cx, cy, Rx, Ry, r0 } = geo;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(Rx, Ry);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, "rgba(76,201,240,.08)"); g.addColorStop(1, "rgba(76,201,240,.015)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, 7); ctx.fill();
+  if (S.region !== "ALL"){
+    const sec = SECT.find(s => s.k === S.region);
+    if (sec){ ctx.fillStyle = "rgba(139,233,255,.08)"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 1, deg(sec.a0), deg(sec.a1)); ctx.closePath(); ctx.fill(); }
+  }
+  if (!reduce){
+    const phi = sweepAngle(t);
+    for (let i = 0; i < 16; i++){
+      const a1 = phi - i * .03;
+      ctx.fillStyle = `rgba(139,233,255,${.085 * (1 - i / 16)})`;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 1, a1 - .03, a1); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(160,175,255,.38)"; ctx.beginPath(); ctx.ellipse(cx, cy, Rx, Ry, 0, 0, 7); ctx.stroke();
+  for (let d = 0; d < 360; d += 5){
+    const a = deg(d), inner = d % 30 === 0 ? .955 : .982;
+    ctx.strokeStyle = d % 30 === 0 ? "rgba(160,175,255,.4)" : "rgba(160,175,255,.18)";
+    ctx.beginPath(); ctx.moveTo(cx + Rx * inner * Math.cos(a), cy + Ry * inner * Math.sin(a)); ctx.lineTo(cx + Rx * Math.cos(a), cy + Ry * Math.sin(a)); ctx.stroke();
+  }
+  ctx.setLineDash([2, 6]);
+  for (const [h] of RINGS){ const f = ageFrac(h); ctx.strokeStyle = "rgba(160,175,255,.2)"; ctx.beginPath(); ctx.ellipse(cx, cy, Rx * f, Ry * f, 0, 0, 7); ctx.stroke(); }
+  ctx.setLineDash([3, 5]); ctx.strokeStyle = "rgba(160,175,255,.14)";
+  for (const sec of SECT){ const a = deg(sec.a0); ctx.beginPath(); ctx.moveTo(cx + Rx * r0 * .8 * Math.cos(a), cy + Ry * r0 * .8 * Math.sin(a)); ctx.lineTo(cx + Rx * Math.cos(a), cy + Ry * Math.sin(a)); ctx.stroke(); }
+  ctx.setLineDash([]);
+  // age labels sit on the spoke over the Pacific, where no planets are placed
+  const la = SECT.length ? deg(SECT[0].a0) : Math.PI;
+  ctx.font = `600 ${W < 640 ? 9 : 10}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const [h, label] of RINGS){
+    const f = ageFrac(h), x = cx + Rx * f * Math.cos(la), y = cy + Ry * f * Math.sin(la);
+    ctx.fillStyle = "rgba(4,5,12,.85)"; ctx.fillRect(x - 15, y - 7, 30, 14);
+    ctx.fillStyle = "rgba(160,175,255,.75)"; ctx.fillText(label, x, y);
+  }
+  if (!reduce){
+    const phi = sweepAngle(t);
+    ctx.strokeStyle = "rgba(139,233,255,.45)"; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(cx + Rx * r0 * .6 * Math.cos(phi), cy + Ry * r0 * .6 * Math.sin(phi)); ctx.lineTo(cx + Rx * Math.cos(phi), cy + Ry * Math.sin(phi)); ctx.stroke();
+  }
+}
+function drawGlobe(t){
+  const { cx, cy, earthR:R } = geo;
+  const g = ctx.createRadialGradient(cx, cy, R * .6, cx, cy, R * 2.6);
+  g.addColorStop(0, "rgba(76,201,240,.3)"); g.addColorStop(1, "rgba(76,201,240,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 2.6, 0, 7); ctx.fill();
+  const b = ctx.createRadialGradient(cx - R * .35, cy - R * .4, R * .1, cx, cy, R);
+  b.addColorStop(0, "#1b4d6e"); b.addColorStop(1, "#06111d");
+  ctx.fillStyle = b; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.clip();
+  ctx.strokeStyle = "rgba(139,233,255,.55)"; ctx.lineWidth = 1;
+  for (const lat of [-60, -30, 0, 30, 60]){ const a = deg(lat), y = cy + R * Math.sin(a), rx = R * Math.cos(a); ctx.beginPath(); ctx.ellipse(cx, y, rx, rx * .16, 0, 0, 7); ctx.stroke(); }
+  for (let k = 0; k < 6; k++){
+    const ph = t * .22 + k * Math.PI / 6, w = Math.abs(Math.cos(ph)) * R;
+    ctx.globalAlpha = .35 + .55 * Math.abs(Math.sin(ph));
+    ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(.5, w), R, 0, 0, 7); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = "rgba(139,233,255,.8)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+}
+function drawBeam(ax, ay, px, py, r, hue, now){
+  const dx = px - ax, dy = py - ay, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, wa = 30, wp = r * 1.3;
+  const g = ctx.createLinearGradient(ax, ay, px, py);
+  g.addColorStop(0, `hsla(${hue},100%,78%,.32)`); g.addColorStop(1, `hsla(${hue},100%,78%,.06)`);
+  ctx.fillStyle = g; ctx.beginPath();
+  ctx.moveTo(ax + nx * wa, ay + ny * wa); ctx.lineTo(px + nx * wp, py + ny * wp); ctx.lineTo(px - nx * wp, py - ny * wp); ctx.lineTo(ax - nx * wa, ay - ny * wa);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = `hsla(${hue},100%,88%,.55)`; ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++){
+    const f = ((now / 500) + i / 5) % 1, qx = px - dx * f, qy = py - dy * f, w = wp + (wa - wp) * f;
+    ctx.beginPath(); ctx.moveTo(qx + nx * w, qy + ny * w); ctx.lineTo(qx - nx * w, qy - ny * w); ctx.stroke();
+  }
+}
+function anchor(){
+  const r = cv.getBoundingClientRect(), wide = innerWidth > 760;
+  const vx = wide ? innerWidth - 16 - Math.min(410, innerWidth - 32) + 64 : innerWidth / 2;
+  const vy = wide ? 16 + 64 : innerHeight - 40;
+  return { x:vx - r.left, y:vy - r.top };
+}
+const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+function drawFlying(now){
+  const p = G.p, k = G.dur ? Math.min(1, (now - G.t0) / G.dur) : 1, e = ease(k), tgt = anchor();
+  const from = G.phase === "fly" ? { x:G.fx, y:G.fy } : tgt;
+  const to = G.phase === "fly" ? tgt : { x:p.x, y:p.y };
+  const x = from.x + (to.x - from.x) * e, y = from.y + (to.y - from.y) * e - Math.sin(e * Math.PI) * 36;
+  const rr = G.phase === "fly" ? p.r * (1 + 1.5 * e) : p.r * (2.5 - 1.5 * e);
+  drawBeam(tgt.x, tgt.y, x, y, rr, p.look.hue, now);
+  drawPlanet(ctx, x, y, rr, p.look, -.5, -.6, 1, false);
+  if (k >= 1){ if (G.phase === "fly") G.phase = "held"; else { G.phase = "none"; G.p = null; } }
+}
+
+let raf = 0;
+function draw(now){
+  raf = 0;
+  if (!geo || W < 60 || H < 60) return loop();
+  if (!visible && G.phase === "none") return loop();
+  const t = reduce ? 0 : (now - T0) / 1000;
+  ctx.clearRect(0, 0, W, H);
+  drawStars(t);
+  drawDisk(t);
+  const phi = sweepAngle(t), kp = kbd >= 0 ? planets[kbd] : null;
+  for (const p of planets){
+    p.x = p.bx; p.y = p.by + (reduce ? 0 : Math.sin(t * 1.1 + p.bob) * 1.4);
+    if (p.born){
+      const k = (now - p.born) / 1800;
+      if (k < 1){
+        const e = 1 - Math.pow(1 - k, 3), sx = geo.cx + geo.Rx * 1.3 * Math.cos(p.ang), sy = geo.cy + geo.Ry * 1.3 * Math.sin(p.ang);
+        p.tailX = sx + (p.bx - sx) * Math.max(0, e - .25); p.tailY = sy + (p.by - sy) * Math.max(0, e - .25);
+        p.x = sx + (p.bx - sx) * e; p.y = sy + (p.by - sy) * e;
+      } else p.born = 0;
+    }
+    p.on = inRegion(p.s);
+  }
+  const order = [...planets].sort((a, b) => a.y - b.y);
+  let globeDone = false;
+  for (const p of order){
+    if (!globeDone && p.y > geo.cy){ drawGlobe(t); globeDone = true; }
+    if (p === G.p && G.phase !== "none"){
+      ctx.setLineDash([3, 4]); ctx.strokeStyle = `hsla(${p.look.hue},80%,75%,.45)`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      continue;
+    }
+    if (p.born && p.tailX !== undefined){
+      const g = ctx.createLinearGradient(p.x, p.y, p.tailX, p.tailY);
+      g.addColorStop(0, `hsla(${p.look.hue},90%,80%,.7)`); g.addColorStop(1, `hsla(${p.look.hue},90%,80%,0)`);
+      ctx.strokeStyle = g; ctx.lineWidth = p.r * .8; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tailX, p.tailY); ctx.stroke(); ctx.lineCap = "butt";
+    }
+    let lx = geo.cx - p.x, ly = geo.cy - p.y; const d = Math.hypot(lx, ly) || 1; lx /= d; ly /= d;
+    const behind = ((phi - p.ang) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const glow = reduce || !p.on ? 0 : Math.max(0, 1 - behind / .7);
+    if (p.s.breaking && p.on){
+      for (let k = 0; k < (reduce ? 1 : 2); k++){
+        const ph = reduce ? .35 : ((t * .65 + k * .5 + p.bob) % 1);
+        ctx.strokeStyle = `rgba(255,150,120,${(1 - ph) * .8})`; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1.3 + 2.6 * ph), 0, 7); ctx.stroke();
+      }
+    }
+    drawPlanet(ctx, p.x, p.y, p.r, p.look, lx, ly, p.on ? .62 + .38 * (p.persp - .84) / .16 : .1, p.on && (p === hover || p === kp), glow);
+  }
+  if (!globeDone) drawGlobe(t);
+  if (G.p && (G.phase === "fly" || G.phase === "return")) drawFlying(now);
+  const tipP = hover || kp;
+  if (tipP && !(tipP === G.p && G.phase !== "none")) placeTip(tipP);
+  loop();
+}
+function loop(){
+  if (reduce && G.phase !== "fly" && G.phase !== "return" && !planets.some(p => p.born)) return;
+  if (!raf) raf = requestAnimationFrame(draw);
+}
+function requestDraw(){ if (!raf) raf = requestAnimationFrame(draw); }
+new ResizeObserver(resize).observe(stage);
+new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) requestDraw(); }).observe(stage);
+
+/* ---------- tooltip & pointer ---------- */
+const tip = $("tip");
+let tipFor = null;
+function placeTip(p){
+  if (tipFor !== p){
+    tipFor = p; const c = CAT[p.s.cat];
+    tip.style.setProperty("--c", c.c);
+    tip.innerHTML = `<div class="k">${c.name} · ${esc(where(p.s))}</div><div class="h">${esc(p.s.title)}</div>
+      <div class="m">${p.s.signal} outlet${p.s.signal > 1 ? "s" : ""} · ${ago(p.s.ts)}</div>${p.s.breaking ? `<div class="b">${breakingText(p.s)}</div>` : ""}`;
+    tip.hidden = false;
+  }
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let x = p.x + p.r + 14, y = p.y - th / 2;
+  if (x + tw > W - 8) x = p.x - p.r - 14 - tw;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = clamp(y, 8, H - th - 8) + "px";
+}
+function hideTip(){ tipFor = null; tip.hidden = true; }
+function hit(mx, my){
+  let best = null, bd = 1e9;
+  for (const p of planets){
+    if (!p.on || (p === G.p && G.phase !== "none")) continue;
+    const d = Math.hypot(p.x - mx, p.y - my), rr = Math.max(p.r + 7, 16);
+    if (d < rr && d - p.r < bd){ bd = d - p.r; best = p; }
+  }
+  return best;
+}
+const local = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+stage.addEventListener("pointermove", e => {
+  const [x, y] = local(e);
+  par.tx = (x / W - .5) * 2; par.ty = (y / H - .5) * 2;
+  if (e.pointerType !== "mouse" || e.target.closest(".sector,.flyhud")) return;
+  const p = hit(x, y);
+  if (p !== hover){ hover = p; kbd = -1; if (!p) hideTip(); requestDraw(); }
+  stage.style.cursor = p ? "grab" : "default";
+});
+stage.addEventListener("pointerleave", () => { hover = null; hideTip(); requestDraw(); });
+stage.addEventListener("pointerdown", e => {
+  if (e.target.closest(".flyhud,.sector")) return;
+  const [x, y] = local(e), p = hit(x, y);
+  if (p){ stopFlyby(); grabPlanet(p); }
+});
+$("sectors").addEventListener("click", e => {
+  const b = e.target.closest("[data-region]"); if (b) setRegion(S.region === b.dataset.region ? "ALL" : b.dataset.region);
+});
+$("regionChip").addEventListener("click", () => setRegion("ALL"));
+function setRegion(r){
+  S.region = r; stopFlyby();
+  if (G.p && !inRegion(G.p.s)) release();
+  kbd = -1; hover = null; hideTip();
+  placeSectors(); renderHud(); renderChart(); requestDraw();
+}
+
+/* ---------- grabbing ---------- */
+function grabPlanet(p, opts = {}){
+  if (G.p && G.phase !== "none"){ G.phase = "none"; G.p = null; }
+  G.p = p; G.phase = "fly"; G.fx = p.x; G.fy = p.y; G.t0 = performance.now(); G.dur = reduce ? 0 : 720;
+  hover = null; hideTip();
+  clearTimeout(G.tm); G.tm = setTimeout(() => openStory(p.s, opts), G.dur);
+  requestDraw(); loop();
+}
+function grabStory(s, opts = {}){
+  const p = planets.find(p => p.s.id === s.id);
+  if (p && visible) grabPlanet(p, opts);
+  else { if (G.p){ G.phase = "none"; G.p = null; } openStory(s, opts); requestDraw(); }
+}
+function sendBack(){
+  if (G.p && G.phase === "held"){ G.phase = "return"; G.t0 = performance.now(); G.dur = reduce ? 0 : 520; }
+  else if (G.phase === "fly"){ G.phase = "none"; G.p = null; }
+  requestDraw(); loop();
+}
+function release(){
+  clearTimeout(G.tm);
+  hold.hidden = true; hold.dataset.mode = ""; S.confirmClear = false;
+  sendBack();
+  if (S.pending){ const j = S.pending; S.pending = null; applyUpdate(j); }
+}
+
+/* ---------- the hold ---------- */
+const hold = $("hold");
+function drawMini(o){
+  const m = hold.querySelector(".mini"); if (!m) return;
+  const c = m.getContext("2d"); c.clearRect(0, 0, m.width, m.height);
+  drawPlanet(c, m.width / 2, m.height / 2, m.width * (o.ring ? .2 : .26), o, -.55, -.6, 1, false);
+}
+function coverage(s){
+  if (s.items && s.items.length > 1){
+    return `<div class="cover" style="--c:${CAT[s.cat].c}"><h4>How each outlet tells it</h4><ul>${s.items.map(i =>
+      `<li><span class="src">${esc(i.source)}</span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a>` : `<span>${esc(i.title)}</span>`}</li>`).join("")}</ul></div>`;
+  }
+  if (s.sources && s.sources.length > 1) return `<p class="also">Also carried by ${esc(s.sources.filter(x => x !== s.source).join(", "))}</p>`;
+  return "";
+}
+function openStory(s, opts = {}){
+  const c = CAT[s.cat], kept = isKept(s.id);
+  hold.dataset.mode = "story";
+  hold.innerHTML = `
+    <div class="hold-top">
+      <canvas class="mini" width="176" height="176" aria-hidden="true"></canvas>
+      <div class="hold-meta">
+        <span class="eyebrow" style="--c:${c.c}">${opts.flyby ? "Flyby " + opts.flyby + " · " : ""}${c.name} · ${esc(where(s))}</span>
+        <span class="sigline" style="--c:${c.c}">${sigDots(s.signal)} Carried by ${s.signal} outlet${s.signal > 1 ? "s" : ""}</span>
+        <span class="when">${esc(s.source)} · ${ago(s.ts)}</span>
+      </div>
+      <button class="x" data-act="release" aria-label="Release this planet">✕</button>
+    </div>
+    ${s.breaking ? `<span class="breaking">${breakingText(s)}</span>` : ""}
+    <h2>${esc(s.title)}</h2>
+    <p class="sum">${esc(s.summary || "No summary came over the wire. Open the source for the full story.")}</p>
+    <div class="acts">
+      ${s.url ? `<a class="btn primary" href="${esc(s.url)}" target="_blank" rel="noopener">Read at ${esc(s.source)} ↗</a>` : `<span class="nolink">Sample story · no link</span>`}
+      <button class="btn" data-act="keep" data-id="${esc(s.id)}">${kept ? "Saved ✓" : "Save"}</button>
+      <button class="btn ghost" data-act="release">Release</button>
+    </div>
+    ${coverage(s)}`;
+  hold.hidden = false;
+  drawMini(look(s));
+}
+function openSaved(){
+  stopFlyby(); sendBack();
+  hold.dataset.mode = "saved";
+  const items = S.clips.map(c => find(c.id) || c);
+  hold.innerHTML = `
+    <div class="hold-top" style="align-items:center"><div class="hold-meta" style="padding-top:0"><h3>Saved</h3><span class="when">${items.length} stor${items.length === 1 ? "y" : "ies"} · kept in this browser</span></div>
+    <button class="x" data-act="close" aria-label="Close saved stories">✕</button></div>
+    ${items.length ? `<div class="acts"><button class="btn small" data-act="copy">Copy as list</button><button class="btn small ghost" data-act="clear">${S.confirmClear ? "Press again to remove all" : "Remove all"}</button></div>
+    <ul class="saved-list">${items.map(s => `<li style="--c:${CAT[s.cat].c}"><i class="dot"></i><div class="body">
+      <button class="linkish" data-act="opensaved" data-id="${esc(s.id)}">${esc(s.title)}</button>
+      <span class="when">${CAT[s.cat].name} · ${esc(s.source)} · ${ago(s.ts)}</span></div>
+      <button class="btn small ghost" data-act="keep" data-id="${esc(s.id)}" aria-label="Remove from saved">Remove</button></li>`).join("")}</ul>`
+    : `<p class="sum">Nothing saved yet. Pull in a planet and press <b>Save</b> to keep it here.</p>`}`;
+  hold.hidden = false;
+}
+function toggleKeep(id){
+  const s = find(id); if (!s) return;
+  if (isKept(id)){ S.clips = S.clips.filter(c => c.id !== id); toast("Removed from saved"); }
+  else { S.clips.unshift({ id:s.id, title:s.title, summary:s.summary, url:s.url, source:s.source, sources:s.sources, items:s.items, signal:s.signal, cat:s.cat, region:s.region, place:s.place, ts:s.ts }); toast("Saved"); }
+  persist(); renderHud(); renderChart();
+  if (hold.dataset.mode === "saved") openSaved();
+  else if (hold.dataset.mode === "story"){ const b = hold.querySelector('[data-act="keep"]'); if (b) b.textContent = isKept(id) ? "Saved ✓" : "Save"; }
+}
+async function copySaved(){
+  const text = S.clips.map(c => `• [${CAT[c.cat].name}] ${c.title}${c.url ? "\n  " + c.url : ""}`).join("\n");
+  try { await navigator.clipboard.writeText(text); toast(`Copied ${S.clips.length} stories`); }
+  catch(e){ toast("Copying is blocked here. Select the titles to copy them."); }
+}
+hold.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act;
+  if (a === "release"){ stopFlyby(); release(); }
+  else if (a === "close") release();
+  else if (a === "keep") toggleKeep(b.dataset.id);
+  else if (a === "copy") copySaved();
+  else if (a === "clear"){ if (S.confirmClear){ S.clips = []; S.confirmClear = false; persist(); renderHud(); renderChart(); } else S.confirmClear = true; openSaved(); }
+  else if (a === "opensaved"){ const s = find(b.dataset.id); if (s) grabStory(s); }
+});
+
+/* ---------- 60-second flyby ---------- */
+const F = { on:false, picks:[], t0:0, paused:false, pausedAt:0, idx:-1, done:false };
+const flyhud = $("flyhud");
+function startFlyby(){
+  F.picks = briefPicks(7); if (!F.picks.length){ toast("No stories in this part of the world."); return; }
+  Object.assign(F, { on:true, t0:performance.now(), paused:false, idx:-1, done:false });
+  $("fdots").innerHTML = F.picks.map(s => `<i style="--c:${CAT[s.cat].c}"></i>`).join("");
+  flyhud.hidden = false; $("anchorBtn").hidden = !sampleFn; tickFly();
+}
+function stopFlyby(){ F.on = false; flyhud.hidden = true; }
+function tickFly(){
+  if (!F.on) return;
+  const n = F.picks.length, el = Math.min(60, ((F.paused ? F.pausedAt : performance.now()) - F.t0) / 1000);
+  const idx = Math.min(n - 1, Math.floor(el / (60 / n)));
+  if (idx !== F.idx){ F.idx = idx; grabStory(F.picks[idx], { flyby:`${idx + 1}/${n}` }); }
+  $("fcount").textContent = Math.ceil(60 - el) + "s";
+  [...$("fdots").children].forEach((d, i) => { d.className = i < idx || el >= 60 ? "done" : i === idx ? "now" : ""; });
+  if (el >= 60) F.done = true;
+  $("fpause").textContent = F.done ? "Replay" : F.paused ? "Resume" : "Pause";
+}
+setInterval(tickFly, 200);
+flyhud.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  if (b.dataset.act === "fstop"){ stopFlyby(); release(); }
+  else if (b.dataset.act === "fpause"){
+    if (F.done){ startFlyby(); return; }
+    if (F.paused){ F.t0 += performance.now() - F.pausedAt; F.paused = false; } else { F.pausedAt = performance.now(); F.paused = true; }
+    tickFly();
+  }
+  else if (b.dataset.act === "anchor") anchorRead();
+});
+
+/* ---------- optional: Claude as mission control (only inside claude.ai) ---------- */
+let sampleFn = null, anchorBusy = false;
+if (window.claude && typeof window.claude.use === "function"){
+  window.claude.use("sample").then(s => { sampleFn = s || null; if (F.on) $("anchorBtn").hidden = !sampleFn; }).catch(() => {});
+}
+async function anchorRead(){
+  if (!sampleFn || anchorBusy) return;
+  anchorBusy = true;
+  if (!F.paused){ F.pausedAt = performance.now(); F.paused = true; }
+  tickFly(); sendBack();
+  hold.dataset.mode = "briefing";
+  hold.innerHTML = `<div class="hold-top" style="align-items:center"><div class="hold-meta" style="padding-top:0"><span class="eyebrow" style="--c:var(--beam)">Mission control</span><h3>Your 60-second briefing</h3></div>
+    <button class="x" data-act="close" aria-label="Close briefing">✕</button></div><p class="transmission" id="tx">Receiving transmission…</p>`;
+  hold.hidden = false;
+  const items = briefPicks().map(s => ({ desk:CAT[s.cat].name, where:where(s), headline:s.title, summary:s.summary, outlets:s.signal, breaking:s.breaking }));
+  const prompt = `You are mission control for GLOBEWIRE, a news app where stories are planets around Earth.
+Write a spoken briefing that takes about 60 seconds to read aloud (130 to 150 words).
+Use ONLY the stories below. Do not add facts, names, numbers or context that are not in them.
+Plain text, no markdown, short sentences, one short paragraph per desk, in the order given. Mention breaking stories first. A light space-flight tone is fine; keep the news itself plain.
+${S.mode === "demo" ? "These are SAMPLE stories for a demo. Open by saying this is a demo briefing with sample stories.\n" : ""}
+Stories (JSON):
+${JSON.stringify(items, null, 1)}`;
+  try {
+    const out = await sampleFn(prompt, { modelTier:"quick", onText:({ text }) => { const t = $("tx"); if (t) t.textContent = text; } });
+    const t = $("tx"); if (t) t.textContent = out.text;
+  } catch (e){
+    const t = $("tx");
+    if (e && e.code === "not_granted"){ sampleFn = null; $("anchorBtn").hidden = true; if (t) t.textContent = "Mission control isn't available on this page."; }
+    else if (t) t.textContent = e && e.code === "rate_limited" ? "Mission control needs a minute. Try again shortly." : "The transmission dropped. Try again.";
+  }
+  anchorBusy = false;
+}
+
+/* ---------- HUD & star chart ---------- */
+function renderStatus(){
+  const st = $("status");
+  if (S.mode === "demo"){ st.innerHTML = `<span class="warn">Demo sky · sample stories, not real news</span><span>Load a tape or open the live site for real news</span>`; return; }
+  const src = S.data.sources || [], ok = src.filter(x => x.ok).length;
+  const age = Date.now() - +S.generated, stale = S.mode === "live" && age > 45 * 60e3;
+  st.innerHTML = `${stale ? `<span class="warn">Last update ${ago(+S.generated)}</span>` : `<span class="live">● ${S.mode === "live" ? "Live" : "Tape"}</span><span>Updated ${ago(+S.generated)}</span>`}
+    ${src.length ? `<span>${ok}/${src.length} feeds</span>` : ""}<span>${S.data.stories.length} stories</span>`;
+}
+function renderHud(){
+  renderStatus();
+  $("scount").textContent = S.clips.length ? "· " + S.clips.length : "";
+  const chip = $("regionChip");
+  chip.hidden = S.region === "ALL"; chip.textContent = S.region === "ALL" ? "" : `${REGION_NAME[S.region]} only · show all ✕`;
+  const all = stories();
+  $("desks").innerHTML = CATS.map(c => `<span style="--c:${c.c}"><i></i>${c.name}<em>${all.filter(s => s.cat === c.k).length}</em></span>`).join("");
+}
+function renderChart(){
+  const total = stories().length;
+  const words = CATS.reduce((n, c) => n + byCat(c.k).slice(0, 5).reduce((m, s) => m + s.title.split(/\s+/).length, 0), 0);
+  $("chartMeta").textContent = `${total} stories${S.region !== "ALL" ? " in " + REGION_NAME[S.region] : ""}, ranked by how many outlets carry them. The top headlines take about ${Math.max(10, Math.round(words / 4.2 / 5) * 5)} seconds to read.`;
+  $("chart").innerHTML = CATS.map(c => {
+    const list = byCat(c.k), show = S.expand[c.k] ? list : list.slice(0, 5);
+    return `<section class="col" style="--c:${c.c}"><h3><i class="dot"></i>${c.name}<span class="n">${list.length}</span></h3>
+      ${list.length ? `<ol>${show.map(s => `<li><button class="row" data-story="${esc(s.id)}"><span class="t">${esc(s.title)}</span>
+        <span class="m">${sigDots(s.signal)}${s.breaking ? `<span class="hot">breaking</span>` : ""}<span>${esc(s.source)}</span><span>${esc(s.place || REGION_NAME[s.region])}</span><span>${ago(s.ts)}</span>${isKept(s.id) ? `<span class="kept">saved</span>` : ""}</span></button></li>`).join("")}</ol>`
+        : `<p class="empty">Nothing on this desk${S.region !== "ALL" ? " for " + REGION_NAME[S.region] : ""}.</p>`}
+      ${list.length > 5 ? `<button class="more-btn" data-expand="${c.k}">${S.expand[c.k] ? "Show fewer" : "Show all " + list.length}</button>` : ""}
+    </section>`;
+  }).join("");
+  $("foot").innerHTML = S.mode === "live"
+    ? "Stories come from about 30 RSS feeds and refresh every 15 minutes. Each outlet's own headline is in the reading panel."
+    : "Stories come from RSS feeds collected by globewire.py. Open the live site, or save a tape with <code>python3 globewire.py --export news.json</code> and load it here.";
+}
+$("chart").addEventListener("click", e => {
+  const x = e.target.closest("[data-expand]");
+  if (x){ S.expand[x.dataset.expand] = !S.expand[x.dataset.expand]; renderChart(); return; }
+  const r = e.target.closest("[data-story]"); if (!r) return;
+  const s = find(r.dataset.story); if (s){ stopFlyby(); grabStory(s); }
+});
+$("flyby").addEventListener("click", startFlyby);
+$("savedBtn").addEventListener("click", openSaved);
+
+/* ---------- keyboard ---------- */
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input,select,textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+  const onBtn = e.target.closest("button,a");
+  if (e.key === "Escape"){ if (!hold.hidden){ stopFlyby(); release(); } return; }
+  // ← → step through planets eastward around the world
+  const pool = planets.map((p, i) => i).filter(i => planets[i].on && planets[i] !== G.p)
+    .sort((a, b) => ((planets[a].ang + Math.PI * 1.5) % (Math.PI * 2)) - ((planets[b].ang + Math.PI * 1.5) % (Math.PI * 2)));
+  if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && pool.length && !onBtn){
+    e.preventDefault();
+    const at = pool.indexOf(kbd), n = at < 0 ? 0 : (at + (e.key === "ArrowRight" ? 1 : -1) + pool.length) % pool.length;
+    kbd = pool[n]; hover = null; tipFor = null; requestDraw(); return;
+  }
+  if (e.key === "Enter" && kbd >= 0 && !onBtn){ e.preventDefault(); stopFlyby(); grabPlanet(planets[kbd]); kbd = -1; }
+});
+
+/* ---------- loading, live updates, tapes ---------- */
+function loadSky(j, mode){
+  stopFlyby(); hold.hidden = true; hold.dataset.mode = ""; G.phase = "none"; G.p = null; planets = [];
+  setData(j, mode); layout(); renderHud(); renderChart(); requestDraw();
+}
+function applyUpdate(j){
+  const before = new Set(S.data.stories.map(s => s.id));
+  setData(j, "live"); layout();
+  const now = performance.now(); let fresh = 0;
+  for (const p of planets) if (!before.has(p.s.id)){ p.born = now + Math.random() * 600; fresh++; }
+  renderHud(); renderChart(); requestDraw(); loop();
+  toast(fresh ? `${fresh} new stor${fresh === 1 ? "y" : "ies"} arrived` : "Sky updated");
+}
+async function poll(manual){
+  try {
+    const r = await fetch("news.json" + (manual ? "?refresh=1&t=" + Date.now() : "?t=" + Date.now()), { cache:"no-store" });
+    const j = await r.json();
+    if (!valid(j)) throw new Error("empty");
+    if (j.generated === S.data.generated){ if (manual) toast("Already up to date"); return; }
+    if (!hold.hidden && hold.dataset.mode === "story"){ S.pending = j; if (manual) toast("Update ready. It lands when you release this story."); return; }
+    applyUpdate(j);
+  } catch(e){ if (manual) toast("Couldn't reach the news feed. Try again in a minute."); }
+}
+$("refresh").addEventListener("click", () => poll(true));
+const tapeFile = $("tapeFile");
+$("loadTape").addEventListener("click", () => tapeFile.click());
+tapeFile.addEventListener("change", async () => {
+  const f = tapeFile.files[0]; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text()); if (!valid(j)) throw new Error("no stories");
+    loadSky(j, "tape"); toast(`Tape loaded · ${S.data.stories.length} stories`);
+  } catch(e){ toast("That file isn't a GLOBEWIRE tape. Make one with: python3 globewire.py --export news.json"); }
+  tapeFile.value = "";
+});
+
+/* ---------- clock ---------- */
+function tickClock(){
+  const d = new Date();
+  $("clock").textContent = d.toLocaleDateString("en-GB", { day:"2-digit", month:"short", timeZone:"UTC" }).toUpperCase() + " · " +
+    d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit", timeZone:"UTC" }) + " UTC";
+}
+setInterval(tickClock, 15e3); tickClock();
+
+/* ---------- boot ---------- */
+async function boot(){
+  restore();
+  let live = null;
+  try { const r = await fetch("news.json?t=" + Date.now(), { cache:"no-store" }); if (r.ok){ const j = await r.json(); if (valid(j)) live = j; } } catch(e){}
+  loadSky(live || demoData(), live ? "live" : "demo");
+  loop();
+  setInterval(() => { if (S.data) { renderStatus(); } }, 30e3);
+  setInterval(() => { if (S.data && hold.hidden) { layout(); requestDraw(); } }, 3 * 60e3); // planets drift outward as they age
+  if (live) setInterval(() => poll(false), 5 * 60e3);
+}
+boot();
+})();
+</script>
