@@ -13,7 +13,7 @@
   --ink:#eef0ff; --dim:#c3c9e6; --faint:#959dc2;
   --world:#4cc9f0; --politics:#ff6b5a; --finance:#f5c451; --tech:#a78bfa; --science:#7ee081;
   --beam:#8be9ff; --warn:#ff9a7d;
-  --stage-h:clamp(440px,62vh,640px);
+  --stage-h:clamp(500px,66vh,680px);
   --f-display:"Unbounded", "Atkinson Hyperlegible", system-ui, sans-serif;
   --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
@@ -24,14 +24,14 @@
 html,body{background:var(--void);color:var(--ink);margin:0}
 body{
   font-family:var(--f-body);font-size:16px;line-height:1.5;
-  padding-left:max(16px, env(safe-area-inset-left, 0px));
-  padding-right:max(16px, env(safe-area-inset-right, 0px));
-  padding-block:16px 48px;
+  padding-left:max(clamp(16px, 3vw, 40px), env(safe-area-inset-left, 0px));
+  padding-right:max(clamp(16px, 3vw, 40px), env(safe-area-inset-right, 0px));
+  padding-block:24px 56px;
 }
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--beam);outline-offset:2px}
 a{color:var(--beam)}
-.wrap{max-width:1360px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:1320px;margin-inline:auto;display:flex;flex-direction:column;gap:22px}
 
 /* header */
 .masthead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
@@ -88,7 +88,7 @@ a{color:var(--beam)}
 .sector[aria-pressed="true"] span{color:var(--void)}
 .regionchip{position:absolute;top:12px;left:12px;z-index:2}
 .tip{position:absolute;z-index:3;pointer-events:none;max-width:300px;background:var(--sheet);border:1px solid var(--line-hi);border-radius:12px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;box-shadow:0 10px 30px -10px #000}
-.tip .k{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--c)}
+.tip .k{font-size:14px;font-weight:700;color:var(--c)}
 .tip .h{font-weight:700;line-height:1.3}
 .tip .m{font-size:14px;color:var(--dim)}
 .tip .b{font-size:14px;color:var(--warn)}
@@ -99,7 +99,8 @@ a{color:var(--beam)}
 .fdots i{width:9px;height:9px;border-radius:50%;border:1px solid var(--c);opacity:.5}
 .fdots i.done{background:var(--c);opacity:.5}
 .fdots i.now{background:var(--c);opacity:1;box-shadow:0 0 8px var(--c)}
-.deskbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.filters .label{font-size:15px;font-weight:700;color:var(--dim);margin-right:4px}
 .desk{cursor:pointer;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line-hi);background:transparent;color:var(--dim);font-size:15px;display:inline-flex;align-items:center;gap:8px}
 .desk i{width:10px;height:10px;border-radius:50%;background:var(--c)}
 .desk em{font-style:normal;color:var(--faint);font-size:14px}
@@ -107,10 +108,12 @@ a{color:var(--beam)}
 .desk[aria-pressed="true"] em{color:var(--dim)}
 
 .side{position:relative;min-width:0;border:1px solid var(--line);border-radius:20px;background:var(--panel)}
-.side-in{position:absolute;inset:0;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.side-in{position:absolute;inset:0;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
 .side h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:.02em}
 .side-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.tag{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+.tag{font-size:14px;font-weight:400;color:var(--faint);display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tag b{font-weight:700;color:var(--c)}
+.tag i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
 .meta{font-size:14px;color:var(--dim)}
 .pick{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:5px;width:100%;border-radius:12px;padding:10px;margin:-10px}
 .pick:hover{background:rgba(255,255,255,.04)}
@@ -121,17 +124,19 @@ a{color:var(--beam)}
 .also .label{font-size:14px;font-weight:700;color:var(--faint);letter-spacing:.04em;text-transform:uppercase}
 .also .pick{margin:0 -10px}
 .also .h{font-size:16px;font-weight:700;line-height:1.35}
-.story-top{display:flex;gap:14px;align-items:flex-start}
-.mini{width:84px;height:84px;flex:none}
+.story-top{display:flex;gap:12px;align-items:center}
+.mini{width:48px;height:48px;flex:none}
 .story-meta{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;padding-top:4px}
-.side h3{margin:0;font-size:24px;line-height:1.3;font-weight:700;text-wrap:balance}
+.side h3{margin:0;font-size:22px;line-height:1.3;font-weight:700;text-wrap:balance}
 .sum{margin:0;font-size:17px;line-height:1.55}
 .acts{display:flex;flex-wrap:wrap;gap:8px}
 .nolink{font-size:14px;color:var(--faint);border:1px dashed var(--faint);border-radius:999px;padding:8px 14px}
 .breaking{align-self:flex-start;font-size:14px;font-weight:700;color:var(--warn);border:1px solid rgba(255,154,125,.5);background:rgba(255,154,125,.12);border-radius:999px;padding:3px 12px}
 .cover h4{margin:0 0 4px;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
 .cover ul{list-style:none;margin:0;padding:0}
-.cover li{display:flex;flex-direction:column;gap:2px;padding-block:9px;border-top:1px solid var(--line)}
+.cover li{display:flex;flex-direction:column;gap:2px;padding-block:8px;border-top:1px solid var(--line)}
+.cover .expand{all:unset;cursor:pointer;color:var(--beam);font-size:15px;font-weight:700;padding:8px 0 0}
+.cover .expand:focus-visible{outline:2px solid var(--beam)}
 .cover .src{font-size:14px;font-weight:700;color:var(--c)}
 .cover a{color:var(--ink);text-decoration:none;line-height:1.4;font-size:16px}
 .cover a:hover{color:var(--beam);text-decoration:underline}
@@ -156,9 +161,12 @@ a{color:var(--beam)}
 .story:hover{border-color:var(--line-hi);background:rgba(255,255,255,.04)}
 .story:focus-visible{outline:2px solid var(--beam)}
 .story[aria-current="true"]{border-color:var(--c);background:color-mix(in srgb, var(--c) 10%, transparent)}
-.story .h{font-size:17px;font-weight:700;line-height:1.35;text-wrap:pretty}
+.story .h{font-size:18px;font-weight:700;line-height:1.35;text-wrap:pretty}
+.story.lead-card{grid-column:1 / -1;padding:22px 24px;gap:10px;border-color:var(--line-hi);background:linear-gradient(90deg, color-mix(in srgb, var(--c) 10%, transparent), rgba(255,255,255,.02) 60%)}
+.story.lead-card .h{font-size:26px;line-height:1.25;max-width:42ch;text-wrap:balance}
+.story.lead-card .s{font-size:17px;color:var(--dim);max-width:70ch}
 .story .row1{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.hot{font-size:13px;font-weight:700;color:var(--warn)}
+.hot{font-size:13px;font-weight:700;color:var(--warn);white-space:nowrap}
 .saved-mark{font-size:13px;font-weight:700;color:var(--beam)}
 .empty{color:var(--dim);margin:0}
 .foot{color:var(--faint);font-size:14px;margin:0}
@@ -170,6 +178,8 @@ a{color:var(--beam)}
   .seg.mswitch{display:inline-flex;align-self:flex-start}
   .explore{grid-template-columns:minmax(0,1fr)}
   .wrap[data-mode="list"] .sky{display:none}
+  .wrap[data-mode="list"] .explore{display:contents}
+  .story.lead-card .h{font-size:22px}
   .wrap[data-mode="map"] .headlines{display:none}
   .side{display:none}
   .side.open{display:block;position:fixed;z-index:20;left:0;right:0;bottom:0;height:82%;border-radius:20px 20px 0 0;background:var(--panel);box-shadow:0 0 0 100vmax rgba(2,3,10,.62),0 -20px 50px -10px #000}
@@ -205,10 +215,10 @@ a{color:var(--beam)}
     <button class="btn small quiet" type="button" id="howBtn" aria-expanded="false" aria-controls="how">How to read the map</button>
   </section>
   <div class="how" id="how" hidden>
-    <div><b>Direction</b><span>Where in the world it's happening. Regions are labelled around the edge; select one to show only that region.</span></div>
+    <div><b>Direction</b><span>Where in the world it's happening. Regions are labelled around the edge; select one to filter by region.</span></div>
     <div><b>Distance from Earth</b><span>How old the story is. New stories sit close to Earth and drift outward over the day.</span></div>
     <div><b>Size</b><span>How many outlets carry the story. A ring means 3 or more.</span></div>
-    <div><b>Pulse</b><span>Breaking: the number of outlets jumped since the last update.</span></div>
+    <div><b>Pulse</b><span>Spreading fast: at least two more outlets picked the story up in the last update.</span></div>
     <div><b>Colour</b><span>The topic: World, Politics, Finance, Tech or Science.</span></div>
   </div>
 
@@ -232,10 +242,11 @@ a{color:var(--beam)}
         </div>
         <div class="toast" id="toast" aria-live="polite"></div>
       </div>
-      <div class="deskbar" id="deskbar" role="group" aria-label="Show one topic"></div>
     </div>
     <aside class="side" id="side" aria-live="polite"><div class="side-in" id="sideIn"></div></aside>
   </section>
+
+  <div class="filters" id="filters" role="group" aria-label="Filter map and headlines"></div>
 
   <section class="headlines" id="headlines" aria-labelledby="hlTitle" style="display:flex;flex-direction:column;gap:16px">
     <div class="hl-head">
@@ -245,7 +256,6 @@ a{color:var(--beam)}
         <button type="button" data-sort="covered" aria-pressed="false">Most covered</button>
       </div>
     </div>
-    <div class="tabs" id="tabs" role="group" aria-label="Topic"></div>
     <div class="feed" id="feed"></div>
     <button class="btn small quiet" type="button" id="moreBtn" hidden style="align-self:center"></button>
     <p class="foot" id="foot"></p>
@@ -320,7 +330,7 @@ function demoData(){
     app:"globewire", version:2, demo:true, generated:new Date(now).toISOString(), sources:[],
     stories: rows.map((r, i) => ({
       id:"demo" + i, cat:r[0], region:r[1], place:null, lon:null, signal:r[2], ts:now - r[3] * m,
-      breaking:r[4] !== null, prev_signal:r[4] || 0, title:r[5], summary:r[6],
+      breaking:r[4] !== null, prev_signal:r[4] || 0, breaking_from:r[4], title:r[5], summary:r[6],
       url:"", source:"Sample wire", sources:Array.from({ length:r[2] }, (_, j) => "Sample feed " + (j + 1)), items:[],
     })),
   };
@@ -339,6 +349,7 @@ function setData(j, mode){
     region:REGION_NAME[s.region] ? s.region : "GLOBAL",
     place:s.place ? String(s.place) : null, lon:Number.isFinite(+s.lon) && s.lon !== null ? +s.lon : null,
     ts:Math.min(Date.now(), +s.ts || Date.now()), breaking:!!s.breaking, prev_signal:+s.prev_signal || 0,
+    breaking_from:s.breaking_from === null || s.breaking_from === undefined ? null : +s.breaking_from,
   }));
   S.data = { ...j, stories:clean };
   S.byId = new Map(clean.map(s => [s.id, s]));
@@ -347,7 +358,10 @@ function setData(j, mode){
   $("loadTape").hidden = mode === "live";
 }
 const ageH = s => (Date.now() - s.ts) / 3.6e6;
-const score = s => s.signal * 3 + Math.max(0, 24 - ageH(s)) / 6 + (s.breaking ? 4 : 0);
+// "Spreading fast" only while the story is on more outlets than when the jump started
+const spreadFrom = s => s.breaking_from ?? s.prev_signal ?? 0;
+const spreading = s => !!s.breaking && s.signal > spreadFrom(s);
+const score = s => s.signal * 3 + Math.max(0, 24 - ageH(s)) / 6 + (spreading(s) ? 4 : 0);
 const inRegion = s => S.region === "ALL" || s.region === S.region;
 const inDesk = s => S.desk === "all" || s.cat === S.desk;
 const visible = () => (S.data ? S.data.stories : []).filter(s => inRegion(s) && inDesk(s));
@@ -371,7 +385,8 @@ function ago(ts){
 const outlets = n => n + (n === 1 ? " outlet" : " outlets");
 const where = s => s.place ? `${REGION_NAME[s.region]} · ${s.place}` : REGION_NAME[s.region];
 const metaLine = s => `${esc(s.source)} · ${ago(s.ts)} · ${outlets(s.signal)}`;
-const breakingText = s => s.prev_signal ? `Breaking: now on ${s.signal} outlets, up from ${s.prev_signal}` : `Breaking: on ${s.signal} outlets at once`;
+const spreadText = s => spreadFrom(s) > 0 ? `Spreading fast: up from ${spreadFrom(s)} to ${s.signal} outlets` : `Spreading fast: ${s.signal} outlets picked it up at once`;
+const tagHTML = (s, extra = "") => `<span class="tag" style="--c:${CAT[s.cat].c}"><i></i><b>${CAT[s.cat].name}</b><span>· ${esc(where(s))}</span>${extra}</span>`;
 const isKept = id => S.clips.some(c => c.id === id);
 const find = id => S.byId.get(id) || S.clips.find(c => c.id === id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -634,7 +649,7 @@ function draw(now){
     const behind = ((phi - p.ang) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
     const isSel = p.s.id === sel; if (isSel) selP = p;
     const glow = reduce || !p.on || (sel && !isSel) ? 0 : Math.max(0, 1 - behind / .7) * .8;
-    if (p.s.breaking && p.on && !(sel && !isSel)){
+    if (spreading(p.s) && p.on && !(sel && !isSel)){
       for (let k = 0; k < (reduce ? 1 : 2); k++){
         const ph = reduce ? .35 : ((t * .65 + k * .5 + p.bob) % 1);
         ctx.strokeStyle = `rgba(255,154,125,${(1 - ph) * .75})`; ctx.lineWidth = 1.5;
@@ -661,7 +676,7 @@ function loop(){
   if (!raf) raf = requestAnimationFrame(draw);
 }
 function requestDraw(){ if (!raf) raf = requestAnimationFrame(draw); }
-new ResizeObserver(resize).observe(stage);
+new ResizeObserver(() => { resize(); if (S.data) renderSide(); }).observe(stage);
 new IntersectionObserver(es => { onScreen = es[0].isIntersecting; if (onScreen) requestDraw(); }).observe(stage);
 
 /* ---------- tooltip & pointer ---------- */
@@ -672,7 +687,7 @@ function placeTip(p){
     tipFor = p; const c = CAT[p.s.cat];
     tip.style.setProperty("--c", c.c);
     tip.innerHTML = `<div class="k">${c.name} · ${esc(where(p.s))}</div><div class="h">${esc(p.s.title)}</div>
-      <div class="m">${outlets(p.s.signal)} · ${ago(p.s.ts)}</div>${p.s.breaking ? `<div class="b">${breakingText(p.s)}</div>` : ""}`;
+      <div class="m">${outlets(p.s.signal)} · ${ago(p.s.ts)}</div>${spreading(p.s) ? `<div class="b">${spreadText(p.s)}</div>` : ""}`;
     tip.hidden = false;
   }
   const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -708,7 +723,7 @@ stage.addEventListener("pointerdown", e => {
 
 /* ---------- selecting a story ---------- */
 function select(s, opts = {}){
-  S.selId = s.id; S.view = "story"; S.storyOpts = opts; beamT0 = performance.now();
+  S.selId = s.id; S.view = "story"; S.storyOpts = opts; S.coverAll = false; beamT0 = performance.now();
   hover = null; hideTip(); renderSide(); renderFeed(); requestDraw(); loop();
   if (phone()) $("sideIn").scrollTop = 0;
 }
@@ -727,15 +742,17 @@ function drawMini(o){
 }
 function coverage(s){
   if (s.items && s.items.length > 1){
-    return `<div class="cover" style="--c:${CAT[s.cat].c}"><h4>How each outlet tells it</h4><ul>${s.items.map(i =>
-      `<li><span class="src">${esc(i.source)}</span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a>` : `<span>${esc(i.title)}</span>`}</li>`).join("")}</ul></div>`;
+    const shown = S.coverAll ? s.items : s.items.slice(0, S.coverN || 3), more = s.items.length - shown.length;
+    return `<div class="cover" style="--c:${CAT[s.cat].c}"><h4>How each outlet tells it</h4><ul>${shown.map(i =>
+      `<li><span class="src">${esc(i.source)}</span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a>` : `<span>${esc(i.title)}</span>`}</li>`).join("")}</ul>
+      ${more > 0 ? `<button type="button" class="expand" data-act="coverall">Show all ${s.items.length} outlets</button>` : S.coverAll && s.items.length > (S.coverN || 3) ? `<button type="button" class="expand" data-act="coverall">Show fewer</button>` : ""}</div>`;
   }
   if (s.sources && s.sources.length > 1) return `<p class="meta" style="margin:0">Also carried by ${esc(s.sources.filter(x => x !== s.source).join(", "))}</p>`;
   return "";
 }
 function renderTop(){
   const pool = visible().sort((a, b) => score(b) - score(a));
-  const lead = pool[0], rest = pool.slice(1, 7);
+  const lead = pool[0], rest = pool.slice(1, 3);
   const filtered = S.desk !== "all" || S.region !== "ALL";
   const scope = [S.desk !== "all" ? CAT[S.desk].name : "", S.region !== "ALL" ? REGION_NAME[S.region] : ""].filter(Boolean).join(" · ");
   if (!lead) return `<div class="side-head"><h2>Top stories</h2></div><p class="empty">No stories ${filtered ? "match this filter" : "yet"}.${filtered ? ` <button class="btn small quiet" type="button" data-act="clearfilters">Show everything</button>` : ""}</p>`;
@@ -744,37 +761,37 @@ function renderTop(){
     <div class="side-head"><h2>Top stories${scope ? `<span class="meta" style="font-family:var(--f-body);display:block;margin-top:2px">${esc(scope)}</span>` : ""}</h2>
       <button class="btn small primary" type="button" data-act="flyby">Play a 60-second briefing</button></div>
     <button class="pick lead" type="button" data-story="${esc(lead.id)}" style="--c:${c.c}">
-      <span class="tag">${c.name} · ${esc(where(lead))}</span>
-      ${lead.breaking ? `<span class="breaking">${breakingText(lead)}</span>` : ""}
+      ${tagHTML(lead)}
+      ${spreading(lead) ? `<span class="breaking">${spreadText(lead)}</span>` : ""}
       <span class="h">${esc(lead.title)}</span>
       ${lead.summary ? `<span class="s">${esc(lead.summary)}</span>` : ""}
       <span class="meta">${metaLine(lead)}</span>
     </button>
     ${rest.length ? `<div class="also"><span class="label">Also moving</span>${rest.map(s => `
       <button class="pick" type="button" data-story="${esc(s.id)}" style="--c:${CAT[s.cat].c}">
-        <span class="tag">${CAT[s.cat].name}${s.breaking ? ` · <span class="hot">Breaking</span>` : ""}</span>
+        ${tagHTML(s, spreading(s) ? `<span class="hot">· Spreading fast</span>` : "")}
         <span class="h">${esc(s.title)}</span><span class="meta">${metaLine(s)}</span>
       </button>`).join("")}</div>` : ""}
-    <a href="#headlines" data-act="toheadlines" class="meta" style="color:var(--beam)">All headlines ↓</a>`;
+    <a href="#headlines" data-act="toheadlines" style="font-weight:700;margin-top:auto">All ${pool.length} headlines ↓</a>`;
 }
 function renderStory(s, opts){
   const c = CAT[s.cat], kept = isKept(s.id);
   return `
-    <div class="story-top">
-      <canvas class="mini" width="168" height="168" aria-hidden="true"></canvas>
-      <div class="story-meta">
-        <span class="tag" style="--c:${c.c}">${opts.flyby ? "Briefing " + opts.flyby + " · " : ""}${c.name} · ${esc(where(s))}</span>
-        <span class="meta">${esc(s.source)} · ${ago(s.ts)}</span>
-        <span class="meta"><b style="color:var(--ink)">${outlets(s.signal)}</b> carry this story</span>
-      </div>
+    <div class="side-head">
+      ${opts.flyby ? `<span class="meta" style="color:var(--beam);font-weight:700">Briefing ${opts.flyby}</span>` : tagHTML(s)}
+      <button class="btn small quiet" type="button" data-act="close">Close story</button>
     </div>
-    ${s.breaking ? `<span class="breaking">${breakingText(s)}</span>` : ""}
+    ${opts.flyby ? tagHTML(s) : ""}
+    <div class="story-top">
+      <canvas class="mini" width="96" height="96" aria-hidden="true"></canvas>
+      <span class="meta">${esc(s.source)} · ${ago(s.ts)} · <b style="color:var(--ink)">${outlets(s.signal)}</b></span>
+    </div>
+    ${spreading(s) ? `<span class="breaking">${spreadText(s)}</span>` : ""}
     <h3>${esc(s.title)}</h3>
     <p class="sum">${esc(s.summary || "No summary came with this story. Open the source for the full article.")}</p>
     <div class="acts">
       ${s.url ? `<a class="btn primary" href="${esc(s.url)}" target="_blank" rel="noopener">Read at ${esc(s.source)} ↗</a>` : `<span class="nolink">Sample story · no link</span>`}
       <button class="btn" type="button" data-act="keep" data-id="${esc(s.id)}">${kept ? "Saved ✓" : "Save"}</button>
-      <button class="btn quiet" type="button" data-act="close">Close story</button>
     </div>
     ${coverage(s)}`;
 }
@@ -790,11 +807,24 @@ function renderSaved(){
       <button class="btn small quiet" type="button" data-act="keep" data-id="${esc(s.id)}" aria-label="Remove from saved">Remove</button></li>`).join("")}</ul>`
     : `<p class="empty">Nothing saved yet. Open a story and press <b>Save</b> to keep it here.</p>`}`;
 }
+const overflows = () => sideIn.scrollHeight - sideIn.clientHeight > 1;
 function renderSide(){
   const s = S.selId ? find(S.selId) : null;
   if (S.view === "story" && !s){ S.view = "top"; S.selId = null; }
-  sideIn.innerHTML = S.view === "story" ? renderStory(s, S.storyOpts || {}) : S.view === "saved" ? renderSaved() : S.view === "briefing" ? renderBriefingShell() : renderTop();
+  const html = () => S.view === "story" ? renderStory(s, S.storyOpts || {}) : S.view === "saved" ? renderSaved() : S.view === "briefing" ? renderBriefingShell() : renderTop();
   side.classList.toggle("open", S.view !== "top");
+  S.coverN = 3;
+  sideIn.innerHTML = html();
+  if (!phone()){
+    // fit the panel to the map's height rather than scrolling inside it
+    if (S.view === "top"){
+      const picks = [...sideIn.querySelectorAll(".also .pick")];
+      while (overflows() && picks.length) picks.pop().remove();
+      if (!sideIn.querySelector(".also .pick")){ const also = sideIn.querySelector(".also"); if (also) also.remove(); }
+    } else if (S.view === "story" && !S.coverAll){
+      while (overflows() && S.coverN > 1){ S.coverN--; sideIn.innerHTML = html(); }
+    }
+  }
   if (S.view === "story") drawMini(look(s));
 }
 function toggleKeep(id){
@@ -895,14 +925,16 @@ function deskButtons(){
     `<button type="button" class="desk" data-desk="${c.k}" aria-pressed="${S.desk === c.k}" style="--c:${c.c}"><i></i>${c.name}<em>${c.k === "all" ? pool.length : pool.filter(s => s.cat === c.k).length}</em></button>`).join("");
 }
 function renderFeed(){
-  const list = visible().sort(S.sort === "covered" ? (a, b) => b.signal - a.signal || b.ts - a.ts : (a, b) => b.ts - a.ts);
+  const pool = visible(), lead = pool.slice().sort((a, b) => score(b) - score(a))[0];
+  const list = pool.filter(s => s !== lead).sort(S.sort === "covered" ? (a, b) => b.signal - a.signal || b.ts - a.ts : (a, b) => b.ts - a.ts);
+  if (lead) list.unshift(lead);
   const shown = list.slice(0, S.showN);
-  $("tabs").innerHTML = deskButtons();
   $("hlMeta").textContent = `${list.length} ${list.length === 1 ? "story" : "stories"}${S.region !== "ALL" ? " in " + REGION_NAME[S.region] : ""} · ${S.sort === "covered" ? "most outlets first" : "newest first"}`;
   $("feed").innerHTML = shown.length ? shown.map(s => `
-    <button class="story" type="button" data-story="${esc(s.id)}" style="--c:${CAT[s.cat].c}" aria-current="${s.id === S.selId}">
-      <span class="row1"><span class="tag">${CAT[s.cat].name} · ${esc(where(s))}</span>${s.breaking ? `<span class="hot">Breaking</span>` : isKept(s.id) ? `<span class="saved-mark">Saved</span>` : ""}</span>
+    <button class="story${s === lead ? " lead-card" : ""}" type="button" data-story="${esc(s.id)}" style="--c:${CAT[s.cat].c}" aria-current="${s.id === S.selId}">
+      <span class="row1">${tagHTML(s, s === lead ? `<span>· Top story</span>` : "")}${spreading(s) ? `<span class="hot">Spreading fast</span>` : isKept(s.id) ? `<span class="saved-mark">Saved</span>` : ""}</span>
       <span class="h">${esc(s.title)}</span>
+      ${s === lead && s.summary ? `<span class="s">${esc(s.summary)}</span>` : ""}
       <span class="meta">${metaLine(s)}</span>
     </button>`).join("") : `<p class="empty">No stories match. <button class="btn small quiet" type="button" data-act="clearfilters">Show everything</button></p>`;
   const more = $("moreBtn");
@@ -912,7 +944,11 @@ function renderFeed(){
     : "These are sample stories. The live site shows real headlines from about 30 news feeds. To use your own, save a news file with <code>python3 globewire.py --export news.json</code> and load it here.";
   document.querySelectorAll("[data-sort]").forEach(b => b.setAttribute("aria-pressed", b.dataset.sort === S.sort));
 }
-function renderAll(){ renderHeader(); $("deskbar").innerHTML = deskButtons(); renderSide(); renderFeed(); placeSectors(); requestDraw(); }
+function renderFilters(){
+  $("filters").innerHTML = `<span class="label">Filter map and headlines</span>${deskButtons()}` +
+    (S.region !== "ALL" ? `<button type="button" class="desk" data-region="${S.region}" aria-pressed="true" style="--c:var(--beam)">Region: ${REGION_NAME[S.region]} ✕</button>` : "");
+}
+function renderAll(){ renderHeader(); renderFilters(); renderSide(); renderFeed(); placeSectors(); requestDraw(); }
 function setDesk(k){ S.desk = k; S.showN = 24; stopFlyby(); if (S.selId && !inDesk(find(S.selId) || {})) closePanel(); renderAll(); }
 function setRegion(r){ S.region = r; S.showN = 24; stopFlyby(); if (S.selId && !inRegion(find(S.selId) || {})) closePanel(); renderAll(); }
 
@@ -930,6 +966,7 @@ document.addEventListener("click", e => {
   else if (a === "copy") copySaved();
   else if (a === "clear"){ if (S.confirmClear){ S.clips = []; S.confirmClear = false; persist(); renderHeader(); renderFeed(); } else S.confirmClear = true; renderSide(); }
   else if (a === "flyby") startFlyby();
+  else if (a === "coverall"){ S.coverAll = !S.coverAll; renderSide(); }
   else if (a === "clearfilters"){ S.desk = "all"; S.region = "ALL"; renderAll(); }
   else if (a === "toheadlines"){ e.preventDefault(); if (phone()) document.querySelector('.mswitch [data-mview="list"]').click(); document.querySelector(".headlines").scrollIntoView({ behavior:reduce ? "auto" : "smooth" }); }
 });

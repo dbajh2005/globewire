@@ -12,7 +12,8 @@ World news on a radar around Earth. Every story is a planet:
 - **Direction from Earth** shows where in the world it's happening. Sectors run eastward from the Americas through Europe, Africa, the Middle East and Asia-Pacific. Worldwide stories sit over the Pacific.
 - **Distance from Earth** shows how old it is. New stories land close in and drift outward over the day.
 - **Size** shows how many outlets carry it. Stories carried by 3 or more outlets get a ring.
-- **A pulse** marks breaking news, meaning a story's coverage jumped since the last update.
+- **A pulse** marks a story that is spreading fast: at least two more outlets picked it up in the last update. The label disappears once the count falls back.
+- **Outlets** are counted once each, so BBC World and BBC Asia carrying the same story count as one.
 - **Colour** shows the desk: World, Politics, Finance, Tech or Science.
 
 Click a planet and a tractor beam pulls it into the reading panel. The panel shows each outlet's own headline for that story. The **60-second flyby** pulls in the top story from each desk against a countdown. Click a region on the rim to show only that part of the world. The **star chart** below the sky lists everything as plain text.

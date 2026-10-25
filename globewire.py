@@ -81,23 +81,36 @@ CATEGORY_WORDS = {
     "politics": "election elections parliament senate congress minister ministers president vote voters votes "
                 "campaign party government policy law laws court supreme lawmakers legislation white house "
                 "downing labour tory tories conservative democrat democrats republican republicans sanctions "
-                "diplomat diplomatic summit treaty mp mps referendum coalition cabinet impeachment opposition",
+                "diplomat diplomatic summit treaty mp mps referendum coalition cabinet impeachment opposition "
+                "gop senator senators governor mayor",
     "finance": "market markets stocks stock shares economy economic inflation bank banks rates interest oil "
                "prices trade tariff tariffs earnings profit profits gdp investor investors dollar currency bond "
-               "bonds jobs unemployment merger ipo crypto bitcoin revenue recession wall_street",
+               "bonds jobs unemployment merger ipo crypto bitcoin revenue recession wall_street "
+               "oilfield oil_field gas_field crude opec barrel barrels refinery pipeline fuel petrol drilling energy_prices lng",
     "tech": "ai tech technology software app apps apple google microsoft meta amazon nvidia chip chips "
             "semiconductor cyber cyberattack hack hackers hacked robot robots startup internet smartphone "
             "openai anthropic quantum social media tiktok online data breach",
     "science": "science study research scientists space nasa climate health disease virus vaccine cancer "
                "species planet fossil ocean medical hospital drug brain emissions weather earthquake "
-               "telescope astronomers outbreak",
+               "telescope astronomers outbreak researchers wildlife biodiversity conservation",
+}
+
+# Headline words strong enough to override a feed's own topic (an oil-field story in a science feed is finance).
+STRONG_WORDS = {
+    "finance": "oilfield oil_field gas_field crude opec barrel stocks shares markets inflation interest_rate "
+               "interest_rates earnings tariff tariffs economy recession",
+    "politics": "election elections parliament senate congress minister president democrats republicans gop "
+                "campaign lawmakers referendum coalition",
+    "tech": "ai artificial_intelligence chip chips software app cyber cyberattack hack hackers smartphone startup "
+            "tiktok openai",
+    "science": "study scientists researchers nasa telescope species climate vaccine disease outbreak fossil",
 }
 
 # Places: (display name, region, longitude, keywords). A keyword starting with "=" is matched
 # case-sensitively against the original text ("US" the country, not "us" the word);
 # an underscore joins a multi-word phrase.
 PLACES = [
-    ("United States", "AMERICAS", -98, "=US =U.S. america american americans united_states washington white_house wall_street =Fed new_york california texas florida pentagon"),
+    ("United States", "AMERICAS", -98, "=US =U.S. america american americans united_states washington white_house wall_street =Fed new_york california texas florida pentagon democrat democrats republican republicans =GOP trump biden capitol_hill"),
     ("Canada", "AMERICAS", -106, "canada canadian ottawa toronto"),
     ("Mexico", "AMERICAS", -102, "mexico mexican"),
     ("Caribbean", "AMERICAS", -75, "cuba cuban haiti haitian jamaica caribbean"),
@@ -106,7 +119,7 @@ PLACES = [
     ("Peru", "AMERICAS", -75, "peru peruvian ecuador"),
     ("Brazil", "AMERICAS", -51, "brazil brazilian"),
     ("Argentina", "AMERICAS", -64, "argentina argentine chile chilean bolivia"),
-    ("United Kingdom", "EUROPE", -2, "=UK britain british england scotland wales london downing westminster bank_of_england"),
+    ("United Kingdom", "EUROPE", -2, "=UK britain british england scotland wales london downing westminster bank_of_england north_sea"),
     ("Ireland", "EUROPE", -8, "ireland irish dublin"),
     ("Spain", "EUROPE", -4, "spain spanish madrid portugal"),
     ("France", "EUROPE", 2, "france french paris macron"),
@@ -158,7 +171,8 @@ def _rx(word):
     return ("ci", re.compile(r"(?<![a-z])" + re.escape(word.lower()) + r"(?![a-z])"))
 
 
-CATEGORY_RX = {k: [_rx(w) for w in v.split()] for k, v in CATEGORY_WORDS.items()}
+CATEGORY_RX = {k: [_rx(w) for w in _words(v)] for k, v in CATEGORY_WORDS.items()}
+STRONG_RX = {k: [_rx(w) for w in _words(v)] for k, v in STRONG_WORDS.items()}
 PLACE_RX = [(name, region, lon, [_rx(w) for w in _words(words)]) for name, region, lon, words in PLACES]
 
 STOP = set("the a an and or of to in on for with at by from as is are was were be been has have had it its "
@@ -262,30 +276,56 @@ def _first(patterns, text, low):
     return min(pos) if pos else 10**9
 
 
-def classify_cat(text, default):
-    low = " " + text.lower() + " "
-    best, best_n = default, 0
-    for key, patterns in CATEGORY_RX.items():
-        n = _count(patterns, text, low)
-        if n > best_n:
-            best, best_n = key, n
-    return best
+def _low(text):
+    return " " + (text or "").lower() + " "
 
 
-def locate(text, default_region):
-    """Return (region, place, longitude) for a story, or the feed's default region with no place."""
-    low = " " + text.lower() + " "
-    hits = [(name, region, lon, _count(pats, text, low), _first(pats, text, low)) for name, region, lon, pats in PLACE_RX]
-    hits = [h for h in hits if h[3]]
-    if not hits:
-        return default_region or "GLOBAL", None, None
+def classify_cat(title, summary, fixed=None):
+    """A feed's own topic wins unless the headline clearly belongs to one other desk."""
+    tl, sl = _low(title), _low(summary)
+    scores = {k: 2 * _count(p, title, tl) + _count(p, summary or "", sl) for k, p in CATEGORY_RX.items()}
+    if fixed:
+        strong = [k for k, p in STRONG_RX.items() if _count(p, title, tl)]
+        others = [k for k in strong if k != fixed]
+        if fixed not in strong and len(others) == 1 and scores[others[0]] >= scores.get(fixed, 0) + 2:
+            return others[0]
+        return fixed
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else "world"
+
+
+def locate(title, summary, default_region=None):
+    """Return (region, place, longitude). Places named in the headline count double, and a feed that
+    covers one region (US politics, BBC Africa) gets a head start over a passing mention elsewhere."""
+    tl, sl = _low(title), _low(summary)
+    hits = []
+    for name, region, lon, pats in PLACE_RX:
+        n = 2 * _count(pats, title, tl) + _count(pats, summary or "", sl)
+        if n:
+            hits.append((name, region, lon, n, min(_first(pats, title, tl), 1000 + _first(pats, summary or "", sl))))
     by_region = {}
     for name, region, lon, n, at in hits:
         n0, at0 = by_region.get(region, (0, 10**9))
         by_region[region] = (n0 + n, min(at0, at))
+    if default_region and default_region != "GLOBAL":
+        n0, at0 = by_region.get(default_region, (0, 10**9))
+        by_region[default_region] = (n0 + 1.5, at0)
+    if not by_region:
+        return default_region or "GLOBAL", None, None
     region = max(by_region, key=lambda r: (by_region[r][0], -by_region[r][1]))
-    name, _, lon, _, _ = max((h for h in hits if h[1] == region), key=lambda h: (h[3], -h[4]))
+    placed = [h for h in hits if h[1] == region]
+    if not placed:
+        return region, None, None
+    name, _, lon, _, _ = max(placed, key=lambda h: (h[3], -h[4]))
     return region, name, lon
+
+
+OUTLET_PREFIXES = ("BBC", "Guardian", "NPR")
+
+
+def outlet(source):
+    """BBC World and BBC Asia are one outlet, not two."""
+    return next((p for p in OUTLET_PREFIXES if source.startswith(p)), source)
 
 
 def tokens(title):
@@ -323,13 +363,12 @@ def build(previous=None, max_age_hours=48, per_feed=25, workers=16):
                 d = it["date"] or now
                 if (now - d).total_seconds() > max_age_hours * 3600:
                     continue
-                text = it["title"] + " " + it["summary"]
-                region, place, lon = locate(text, default_region)
+                region, place, lon = locate(it["title"], it["summary"], default_region)
                 raw_items.append({
                     **it,
                     "ts": min(now_ms, int(d.timestamp() * 1000)),
                     "source": name,
-                    "cat": fixed_cat or classify_cat(text, "world"),
+                    "cat": classify_cat(it["title"], it["summary"], fixed_cat),
                     "fixed": bool(fixed_cat),
                     "region": region, "place": place, "lon": lon,
                     "tok": tokens(it["title"]),
@@ -367,10 +406,12 @@ def build(previous=None, max_age_hours=48, per_feed=25, workers=16):
         lead = max(items, key=lambda x: (len(x["summary"]) > 40, x["ts"]))
         per_source, seen = [], set()
         for x in items:
-            if x["source"] not in seen:
-                seen.add(x["source"])
+            if outlet(x["source"]) not in seen:
+                seen.add(outlet(x["source"]))
                 per_source.append({"source": x["source"], "title": x["title"], "url": x["url"], "ts": x["ts"]})
-        cats = [x["cat"] for x in items if x["fixed"]] or [x["cat"] for x in items]
+        votes = {}
+        for x in items:
+            votes[x["cat"]] = votes.get(x["cat"], 0) + (1.2 if x["fixed"] else 1.0)
         located = [x for x in items if x["region"] != "GLOBAL"]
         regions = [x["region"] for x in located] or ["GLOBAL"]
         region = max(set(regions), key=regions.count)
@@ -387,7 +428,7 @@ def build(previous=None, max_age_hours=48, per_feed=25, workers=16):
             "sources": [p["source"] for p in per_source],
             "items": per_source,
             "signal": len(per_source),
-            "cat": max(set(cats), key=cats.count),
+            "cat": max(votes, key=votes.get),
             "region": region, "place": place, "lon": lon,
             "ts": max(x["ts"] for x in items),
         }
@@ -395,12 +436,13 @@ def build(previous=None, max_age_hours=48, per_feed=25, workers=16):
         story["first_seen"] = (prev or {}).get("first_seen") or now_ms
         story["prev_signal"] = (prev or {}).get("signal") or 0
         jumped = have_baseline and (story["signal"] - story["prev_signal"] >= 2 or (prev is None and story["signal"] >= 3))
-        since = (prev or {}).get("breaking_since")
-        if jumped:
-            since = now_ms
-        elif since and now_ms - since > BREAKING_WINDOW_MS:
-            since = None
+        since, base = (prev or {}).get("breaking_since"), (prev or {}).get("breaking_from")
+        if jumped and not since:
+            since, base = now_ms, story["prev_signal"]
+        if since and (now_ms - since > BREAKING_WINDOW_MS or story["signal"] <= (base or 0)):
+            since, base = None, None
         story["breaking_since"] = since
+        story["breaking_from"] = base
         story["breaking"] = since is not None
         stories.append(story)
 
@@ -442,7 +484,7 @@ def brief(data, n=7):
     print(f"\033[44;97m GLOBEWIRE · 60-SECOND FLYBY \033[0m  {ok}/{len(data['sources'])} feeds on air\n")
     for s in picks:
         bars = "●" * min(s["signal"], 5) + "○" * (5 - min(s["signal"], 5))
-        flag = " \033[41;97m BREAKING \033[0m" if s.get("breaking") else ""
+        flag = " \033[41;97m SPREADING FAST \033[0m" if s.get("breaking") else ""
         print(f"\033[{ANSI[s['cat']]}m{NAMES[s['cat']]:<9}\033[0m {bars}{flag}  \033[1m{s['title']}\033[0m")
         if s["summary"]:
             print(f"          {s['summary'][:140]}")
