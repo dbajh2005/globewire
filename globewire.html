@@ -2,19 +2,21 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: a tilted radar disk with Earth at the centre. Direction from Earth = where in the world (sectors run
-   eastward from the Americas), distance = how old, size = how many outlets, a pulse = breaking. A tractor beam
-   pulls a story into the hold on the right. The star chart below lists everything as plain text. */
+/* Layout: the orbital map takes two thirds of the first screen; a stable reading panel sits beside it
+   (top stories until a planet is selected, then that story). Topic filters run under both, and a
+   spacious headline feed follows. One deliberate dark theme: deep space. */
 :root{
-  --void:#04050c; --deep:#0a0d1f; --panel:rgba(11,14,32,.95); --line:rgba(160,175,255,.16); --line-hi:rgba(160,175,255,.32);
-  --ink:#e9ecff; --dim:#9aa3c7; --faint:#646d97;
+  --void:#04050c; --panel:#0c1027; --panel-2:#11163a; --sheet:rgba(12,16,39,.98);
+  --line:rgba(170,182,255,.18); --line-hi:rgba(170,182,255,.36);
+  --ink:#eef0ff; --dim:#c3c9e6; --faint:#959dc2;
   --world:#4cc9f0; --politics:#ff6b5a; --finance:#f5c451; --tech:#a78bfa; --science:#7ee081;
-  --beam:#8be9ff; --warn:#ff8a6b;
+  --beam:#8be9ff; --warn:#ff9a7d;
+  --stage-h:clamp(440px,62vh,640px);
   --f-display:"Unbounded", "Atkinson Hyperlegible", system-ui, sans-serif;
   --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -24,204 +26,231 @@ body{
   font-family:var(--f-body);font-size:16px;line-height:1.5;
   padding-left:max(16px, env(safe-area-inset-left, 0px));
   padding-right:max(16px, env(safe-area-inset-right, 0px));
-  padding-block:16px 40px;
+  padding-block:16px 48px;
 }
-.wrap{max-width:1280px;margin-inline:auto;display:flex;flex-direction:column;gap:28px}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--beam);outline-offset:2px}
-code{font-family:var(--f-mono);font-size:.9em;color:var(--ink)}
+a{color:var(--beam)}
+.wrap{max-width:1360px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
 
-/* ---------- the sky ---------- */
-.sky{
-  border:1px solid var(--line);border-radius:22px;overflow:hidden;
-  background:
-    radial-gradient(55% 45% at 20% 25%, rgba(118,78,210,.18), transparent 70%),
-    radial-gradient(45% 40% at 84% 78%, rgba(36,150,200,.14), transparent 70%),
-    var(--void);
-  display:grid;grid-template-rows:auto 1fr auto;
-}
-.hud-top,.hud-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;padding:14px 18px}
-.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;min-width:0}
-.logo{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.14em}
+/* header */
+.masthead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+.logo{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.14em;color:var(--ink);text-decoration:none}
 .logo b{color:var(--beam);font-weight:700}
-.status{font-family:var(--f-mono);font-size:12px;color:var(--dim);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
-.status .warn{color:var(--void);background:var(--warn);padding:1px 8px;border-radius:999px;font-weight:600}
-.status .live{color:var(--science)}
-.hud-right{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-family:var(--f-mono);font-size:12px;color:var(--dim)}
-.clock{font-variant-numeric:tabular-nums;white-space:nowrap}
-.chip-region{cursor:pointer;border:1px solid var(--beam);background:rgba(139,233,255,.12);color:var(--beam);border-radius:999px;padding:3px 12px;font-family:var(--f-mono);font-size:12px}
+.top-right{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.fresh{font-size:15px;color:var(--dim)}
+.fresh .warn{color:var(--warn);font-weight:700}
+.btn{
+  cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 16px;
+  border-radius:999px;border:1px solid var(--line-hi);background:rgba(255,255,255,.03);color:var(--ink);
+  font-size:15px;font-weight:700;text-decoration:none;
+}
+.btn:hover{border-color:var(--beam);color:var(--ink)}
+.btn.primary{border-color:var(--beam);background:rgba(139,233,255,.14);color:var(--beam)}
+.btn.quiet{font-weight:400;color:var(--dim)}
+.btn.small{min-height:36px;padding:0 14px;font-size:14px}
+.tremor{gap:10px}
+.tremor b{font-family:var(--f-display);font-size:13px;letter-spacing:.1em;color:var(--beam)}
+.tremor span{font-weight:400;color:var(--dim)}
+.demo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,154,125,.45);background:rgba(255,154,125,.1);font-size:15px}
+.demo b{color:var(--warn)}
 
-.stage{position:relative;height:clamp(440px,66vh,720px);min-height:0;touch-action:manipulation}
+/* intro */
+.intro{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.intro h1{margin:0;font-family:var(--f-display);font-weight:500;font-size:clamp(24px,3vw,32px);line-height:1.15;text-wrap:balance}
+.intro p{margin:4px 0 0;font-size:18px;color:var(--dim)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;padding:18px;border-radius:16px;border:1px solid var(--line);background:var(--panel)}
+.how div{display:flex;flex-direction:column;gap:4px}
+.how b{font-size:16px}
+.how span{font-size:15px;color:var(--dim)}
+
+/* the map and the reading panel */
+.seg.mswitch{display:none}
+.explore{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:20px;align-items:stretch}
+.sky{
+  border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;min-width:0;
+  background:
+    radial-gradient(55% 45% at 22% 28%, rgba(118,78,210,.18), transparent 70%),
+    radial-gradient(45% 40% at 82% 74%, rgba(36,150,200,.14), transparent 70%),
+    var(--void);
+}
+.stage{position:relative;height:var(--stage-h);touch-action:manipulation}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sectors{position:absolute;inset:0;pointer-events:none;z-index:1}
 .sector{
   position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;white-space:nowrap;
-  font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
-  background:rgba(4,5,12,.78);border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+  font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--dim);
+  background:rgba(4,5,12,.82);border:1px solid var(--line);border-radius:999px;padding:3px 11px;
 }
-.sector span{color:var(--faint);margin-left:4px}
+.sector span{color:var(--faint);font-weight:400;margin-left:5px}
 .sector:hover{color:var(--ink);border-color:var(--line-hi)}
 .sector[aria-pressed="true"]{color:var(--void);background:var(--beam);border-color:var(--beam)}
 .sector[aria-pressed="true"] span{color:var(--void)}
-.tip{
-  position:absolute;z-index:3;pointer-events:none;max-width:290px;
-  background:var(--panel);border:1px solid var(--line-hi);border-radius:12px;padding:8px 12px;
-  box-shadow:0 10px 30px -10px #000;display:flex;flex-direction:column;gap:2px;
-}
-.tip .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
-.tip .h{font-weight:700;line-height:1.3;text-wrap:balance}
-.tip .m{font-family:var(--f-mono);font-size:11px;color:var(--dim)}
-.tip .b{font-family:var(--f-mono);font-size:11px;color:var(--warn)}
-.toast{position:absolute;left:18px;bottom:12px;z-index:2;font-family:var(--f-mono);font-size:12px;color:var(--beam);pointer-events:none}
-
-.flyhud{
-  position:absolute;z-index:2;top:10px;left:0;right:0;margin-inline:auto;width:fit-content;max-width:calc(100% - 24px);
-  display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;justify-content:center;
-  background:var(--panel);border:1px solid var(--line-hi);border-radius:22px;padding:6px 8px 6px 16px;
-}
-.flyhud .count{font-family:var(--f-display);font-size:18px;font-variant-numeric:tabular-nums;color:var(--beam);min-width:3.2ch}
+.regionchip{position:absolute;top:12px;left:12px;z-index:2}
+.tip{position:absolute;z-index:3;pointer-events:none;max-width:300px;background:var(--sheet);border:1px solid var(--line-hi);border-radius:12px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;box-shadow:0 10px 30px -10px #000}
+.tip .k{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--c)}
+.tip .h{font-weight:700;line-height:1.3}
+.tip .m{font-size:14px;color:var(--dim)}
+.tip .b{font-size:14px;color:var(--warn)}
+.toast{position:absolute;left:16px;bottom:12px;z-index:2;font-size:14px;color:var(--beam);pointer-events:none}
+.flyhud{position:absolute;z-index:2;top:12px;left:0;right:0;margin-inline:auto;width:fit-content;max-width:calc(100% - 24px);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;background:var(--sheet);border:1px solid var(--line-hi);border-radius:22px;padding:6px 8px 6px 16px}
+.flyhud .count{font-family:var(--f-display);font-size:18px;color:var(--beam);font-variant-numeric:tabular-nums;min-width:3.4ch}
 .fdots{display:flex;gap:5px}
 .fdots i{width:9px;height:9px;border-radius:50%;border:1px solid var(--c);opacity:.5}
 .fdots i.done{background:var(--c);opacity:.5}
 .fdots i.now{background:var(--c);opacity:1;box-shadow:0 0 8px var(--c)}
+.deskbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.desk{cursor:pointer;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line-hi);background:transparent;color:var(--dim);font-size:15px;display:inline-flex;align-items:center;gap:8px}
+.desk i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.desk em{font-style:normal;color:var(--faint);font-size:14px}
+.desk[aria-pressed="true"]{color:var(--ink);border-color:var(--c);background:color-mix(in srgb, var(--c) 16%, transparent)}
+.desk[aria-pressed="true"] em{color:var(--dim)}
 
-.hud-bottom{border-top:1px solid var(--line);align-items:flex-start}
-.key{display:flex;flex-direction:column;gap:6px;min-width:0}
-.desks{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px}
-.desks span{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
-.desks i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
-.desks em{font-style:normal;color:var(--faint);font-family:var(--f-mono);font-size:12px}
-.howto{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:13px;color:var(--dim)}
-.howto b{color:var(--ink)}
-.actions{display:flex;flex-wrap:wrap;gap:8px}
-.btn{
-  cursor:pointer;border:1px solid var(--line-hi);background:rgba(255,255,255,.03);border-radius:999px;
-  padding:7px 16px;font-size:14px;font-weight:700;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px;
-}
-.btn:hover{border-color:var(--beam)}
-.btn.primary{border-color:var(--beam);background:rgba(139,233,255,.14);color:var(--beam)}
-.btn.ghost{font-weight:400;color:var(--dim)}
-.btn.small{padding:4px 12px;font-size:13px}
-
-/* ---------- the hold (reading panel) ---------- */
-.hold{
-  position:fixed;z-index:20;
-  top:calc(16px + env(safe-area-inset-top, 0px));right:max(16px, env(safe-area-inset-right, 0px));
-  width:min(410px, calc(100% - 32px));max-height:calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));overflow:auto;
-  background:var(--panel);border:1px solid var(--line-hi);border-radius:20px;padding:20px;
-  box-shadow:0 30px 60px -20px #000;backdrop-filter:blur(10px);
-  display:flex;flex-direction:column;gap:12px;animation:holdIn .28s ease-out;
-}
-@keyframes holdIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.hold-top{display:flex;gap:14px;align-items:flex-start}
-.mini{width:88px;height:88px;flex:none}
-.hold-meta{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;padding-top:6px}
-.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
-.when,.sigline{font-family:var(--f-mono);font-size:12px;color:var(--dim)}
-.x{cursor:pointer;background:transparent;border:1px solid var(--line-hi);border-radius:50%;width:34px;height:34px;flex:none;color:var(--dim)}
-.hold h2{font-family:var(--f-display);font-weight:500;font-size:21px;line-height:1.3;margin:0;text-wrap:balance}
-.hold h3{font-family:var(--f-display);font-weight:500;font-size:18px;margin:0}
-.hold .sum{margin:0}
-.hold .also{margin:0;font-size:13px;color:var(--dim)}
-.hold .acts{display:flex;flex-wrap:wrap;gap:8px}
-.breaking{align-self:flex-start;font-family:var(--f-mono);font-size:12px;color:var(--warn);border:1px solid rgba(255,138,107,.45);background:rgba(255,138,107,.12);border-radius:999px;padding:2px 10px}
-.cover h4{margin:0 0 4px;font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-.cover ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.cover li{display:flex;flex-direction:column;gap:1px;padding-block:7px;border-top:1px solid var(--line)}
-.cover .src{font-family:var(--f-mono);font-size:11px;color:var(--c)}
-.cover a{color:var(--ink);text-decoration:none;line-height:1.35}
+.side{position:relative;min-width:0;border:1px solid var(--line);border-radius:20px;background:var(--panel)}
+.side-in{position:absolute;inset:0;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.side h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:.02em}
+.side-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tag{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+.meta{font-size:14px;color:var(--dim)}
+.pick{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:5px;width:100%;border-radius:12px;padding:10px;margin:-10px}
+.pick:hover{background:rgba(255,255,255,.04)}
+.pick:focus-visible{outline:2px solid var(--beam)}
+.lead .h{font-size:22px;font-weight:700;line-height:1.3;text-wrap:balance}
+.lead .s{font-size:16px;color:var(--dim)}
+.also{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.also .label{font-size:14px;font-weight:700;color:var(--faint);letter-spacing:.04em;text-transform:uppercase}
+.also .pick{margin:0 -10px}
+.also .h{font-size:16px;font-weight:700;line-height:1.35}
+.story-top{display:flex;gap:14px;align-items:flex-start}
+.mini{width:84px;height:84px;flex:none}
+.story-meta{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;padding-top:4px}
+.side h3{margin:0;font-size:24px;line-height:1.3;font-weight:700;text-wrap:balance}
+.sum{margin:0;font-size:17px;line-height:1.55}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.nolink{font-size:14px;color:var(--faint);border:1px dashed var(--faint);border-radius:999px;padding:8px 14px}
+.breaking{align-self:flex-start;font-size:14px;font-weight:700;color:var(--warn);border:1px solid rgba(255,154,125,.5);background:rgba(255,154,125,.12);border-radius:999px;padding:3px 12px}
+.cover h4{margin:0 0 4px;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.cover ul{list-style:none;margin:0;padding:0}
+.cover li{display:flex;flex-direction:column;gap:2px;padding-block:9px;border-top:1px solid var(--line)}
+.cover .src{font-size:14px;font-weight:700;color:var(--c)}
+.cover a{color:var(--ink);text-decoration:none;line-height:1.4;font-size:16px}
 .cover a:hover{color:var(--beam);text-decoration:underline}
-.nolink{font-size:13px;color:var(--faint);border:1px dashed var(--faint);border-radius:999px;padding:6px 14px}
-.saved-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.saved-list{list-style:none;margin:0;padding:0}
 .saved-list li{display:flex;gap:10px;align-items:flex-start;padding-block:10px;border-top:1px solid var(--line)}
-.saved-list .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;margin-top:6px;box-shadow:0 0 8px var(--c)}
+.saved-list .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;margin-top:7px}
 .saved-list .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .linkish{all:unset;cursor:pointer;font-weight:700;line-height:1.35}
 .linkish:hover{color:var(--beam)}
-.transmission{white-space:pre-wrap;border-left:2px solid var(--beam);padding-left:12px;margin:0}
+.transmission{white-space:pre-wrap;border-left:2px solid var(--beam);padding-left:12px;margin:0;font-size:17px}
 
-/* ---------- star chart ---------- */
-.chart-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 20px}
-.chart-head h2{font-family:var(--f-display);font-weight:500;font-size:22px;margin:0;letter-spacing:.04em}
-.chart-head p{margin:0;color:var(--dim);font-size:14px;max-width:70ch}
-.chart{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px}
-.col{display:flex;flex-direction:column;gap:6px;min-width:0}
-.col h3{display:flex;align-items:center;gap:9px;margin:0 0 4px;font-family:var(--f-mono);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--c);padding-bottom:8px;border-bottom:1px solid var(--line)}
-.col h3 .dot{width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
-.col h3 .n{margin-left:auto;color:var(--faint)}
-.col ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.row{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:8px 6px;border-radius:10px;width:100%;box-sizing:border-box}
-.row:hover{background:rgba(255,255,255,.04)}
-.row:focus-visible{outline:2px solid var(--beam)}
-.row .t{font-weight:700;line-height:1.35;text-wrap:pretty}
-.row .m{font-family:var(--f-mono);font-size:11.5px;color:var(--dim);display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
-.row .hot{color:var(--warn)}
-.sd{display:inline-flex;gap:3px}
-.sd i{width:6px;height:6px;border-radius:50%;background:var(--c);opacity:.22}
-.sd i.on{opacity:1}
-.kept{color:var(--beam)}
-.more-btn{all:unset;cursor:pointer;font-family:var(--f-mono);font-size:12px;color:var(--dim);padding:4px 6px}
-.more-btn:hover{color:var(--ink)}
-.empty{color:var(--faint);font-size:14px;margin:0;padding:6px}
-.foot{color:var(--faint);font-size:13px;margin:0}
+/* headlines */
+.hl-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px}
+.hl-head h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:24px}
+.hl-head p{margin:2px 0 0;color:var(--dim);font-size:15px}
+.seg{display:inline-flex;border:1px solid var(--line-hi);border-radius:999px;padding:3px;gap:2px}
+.seg button{cursor:pointer;border:0;background:transparent;color:var(--dim);border-radius:999px;min-height:36px;padding:0 14px;font-size:15px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--void);font-weight:700}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:14px}
+.story{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:8px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
+.story:hover{border-color:var(--line-hi);background:rgba(255,255,255,.04)}
+.story:focus-visible{outline:2px solid var(--beam)}
+.story[aria-current="true"]{border-color:var(--c);background:color-mix(in srgb, var(--c) 10%, transparent)}
+.story .h{font-size:17px;font-weight:700;line-height:1.35;text-wrap:pretty}
+.story .row1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hot{font-size:13px;font-weight:700;color:var(--warn)}
+.saved-mark{font-size:13px;font-weight:700;color:var(--beam)}
+.empty{color:var(--dim);margin:0}
+.foot{color:var(--faint);font-size:14px;margin:0}
+.foot code{font-family:var(--f-mono);font-size:13px;color:var(--dim)}
 
-@media (max-width:1060px){ .chart{grid-template-columns:minmax(0,1fr)} .col ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px} }
+@media (max-width:1000px){ .explore{grid-template-columns:minmax(0,3fr) minmax(300px,2fr)} }
 @media (max-width:760px){
-  .hold{top:auto;bottom:0;right:0;left:0;width:100%;max-height:74%;border-radius:20px 20px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));
-    padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px))}
-  .col ol{grid-template-columns:minmax(0,1fr)}
-  .stage{height:clamp(380px,108vw,520px)}
-  .hud-top,.hud-bottom{padding:12px}
-  .sector{font-size:10px;padding:2px 8px;letter-spacing:.08em}
+  :root{--stage-h:clamp(340px,52vh,420px)}
+  .seg.mswitch{display:inline-flex;align-self:flex-start}
+  .explore{grid-template-columns:minmax(0,1fr)}
+  .wrap[data-mode="list"] .sky{display:none}
+  .wrap[data-mode="map"] .headlines{display:none}
+  .side{display:none}
+  .side.open{display:block;position:fixed;z-index:20;left:0;right:0;bottom:0;height:82%;border-radius:20px 20px 0 0;background:var(--panel);box-shadow:0 0 0 100vmax rgba(2,3,10,.62),0 -20px 50px -10px #000}
+  .side.open .side-in{padding:20px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px))}
+  .tremor span{display:none}
+  .sector{font-size:12px;padding:2px 8px}
 }
-@media (prefers-reduced-motion:reduce){ .hold{animation:none} }
+@media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto} }
 </style>
 
-<div class="wrap">
-  <section class="sky" aria-label="News around Earth">
-    <div class="hud-top">
-      <div class="brand"><span class="logo">GLOBE<b>WIRE</b></span><span class="status" id="status">Scanning the sky…</span></div>
-      <div class="hud-right">
-        <button class="chip-region" id="regionChip" hidden></button>
-        <a class="btn small" id="tremorLink" href="tremor/" title="A seismograph of ongoing situations">Open TREMOR</a>
-        <span class="clock" id="clock"></span>
-      </div>
+<div class="wrap" id="wrap" data-mode="map">
+  <header class="masthead">
+    <a class="logo" href="#" aria-label="GLOBEWIRE home">GLOBE<b>WIRE</b></a>
+    <div class="top-right">
+      <span class="fresh" id="fresh">Loading headlines…</span>
+      <button class="btn small" type="button" id="savedBtn">Saved <span id="scount"></span></button>
+      <a class="btn small tremor" id="tremorLink" href="tremor/"><b>TREMOR</b><span>What changed since your last visit</span><span aria-hidden="true">→</span></a>
     </div>
-    <div class="stage" id="stage">
-      <canvas id="space" role="img" aria-label="Stories as planets around Earth. Direction shows where in the world, distance shows age, size shows how many outlets carry it. The star chart below lists every story."></canvas>
-      <div class="sectors" id="sectors" role="group" aria-label="Show one part of the world"></div>
-      <div class="tip" id="tip" hidden></div>
-      <div class="flyhud" id="flyhud" hidden>
-        <span class="count" id="fcount">60</span><span class="fdots" id="fdots"></span>
-        <button class="btn small" data-act="fpause" id="fpause">Pause</button>
-        <button class="btn small" data-act="anchor" id="anchorBtn" hidden>Mission control briefing</button>
-        <button class="btn small ghost" data-act="fstop">End flyby</button>
-      </div>
-      <div class="toast" id="toast" aria-live="polite"></div>
+  </header>
+
+  <div class="demo" id="demoNote" hidden>
+    <span><b>Sample stories, not real news.</b> The live site updates every 15 minutes.</span>
+    <a href="https://dbajh2005.github.io/globewire/">Open the live site</a>
+    <button class="btn small quiet" type="button" id="loadTape">Load a news file</button>
+    <input type="file" id="tapeFile" accept="application/json,.json" hidden>
+  </div>
+
+  <section class="intro">
+    <div>
+      <h1>Explore the world's news.</h1>
+      <p>Select a planet to read a story.</p>
     </div>
-    <div class="hud-bottom">
-      <div class="key">
-        <div class="desks" id="desks"></div>
-        <div class="howto"><span><b>Direction</b> where in the world</span><span><b>Distance from Earth</b> how old</span><span><b>Size</b> how many outlets</span><span><b>Pulse</b> breaking</span></div>
+    <button class="btn small quiet" type="button" id="howBtn" aria-expanded="false" aria-controls="how">How to read the map</button>
+  </section>
+  <div class="how" id="how" hidden>
+    <div><b>Direction</b><span>Where in the world it's happening. Regions are labelled around the edge; select one to show only that region.</span></div>
+    <div><b>Distance from Earth</b><span>How old the story is. New stories sit close to Earth and drift outward over the day.</span></div>
+    <div><b>Size</b><span>How many outlets carry the story. A ring means 3 or more.</span></div>
+    <div><b>Pulse</b><span>Breaking: the number of outlets jumped since the last update.</span></div>
+    <div><b>Colour</b><span>The topic: World, Politics, Finance, Tech or Science.</span></div>
+  </div>
+
+  <div class="seg mswitch" role="group" aria-label="View">
+    <button type="button" data-mview="map" aria-pressed="true">Map</button>
+    <button type="button" data-mview="list" aria-pressed="false">Headlines</button>
+  </div>
+
+  <section class="explore" aria-label="News map and top stories">
+    <div class="sky">
+      <div class="stage" id="stage">
+        <canvas id="space" role="img" aria-label="Stories as planets around Earth. Direction shows where in the world, distance shows age, size shows how many outlets carry it. The headlines below list every story."></canvas>
+        <div class="sectors" id="sectors" role="group" aria-label="Show one region"></div>
+        <button class="btn small primary regionchip" type="button" id="regionChip" hidden></button>
+        <div class="tip" id="tip" hidden></div>
+        <div class="flyhud" id="flyhud" hidden>
+          <span class="count" id="fcount">60</span><span class="fdots" id="fdots"></span>
+          <button class="btn small" type="button" data-act="fpause" id="fpause">Pause</button>
+          <button class="btn small" type="button" data-act="anchor" id="anchorBtn" hidden>Summarize these stories</button>
+          <button class="btn small quiet" type="button" data-act="fstop">Stop</button>
+        </div>
+        <div class="toast" id="toast" aria-live="polite"></div>
       </div>
-      <div class="actions">
-        <button class="btn primary" id="flyby">60-second flyby</button>
-        <button class="btn" id="savedBtn">Saved <span id="scount"></span></button>
-        <button class="btn ghost" id="refresh" hidden>Check for updates</button>
-        <button class="btn ghost" id="loadTape">Load tape</button>
-        <input type="file" id="tapeFile" accept="application/json,.json" hidden>
-      </div>
+      <div class="deskbar" id="deskbar" role="group" aria-label="Show one topic"></div>
     </div>
+    <aside class="side" id="side" aria-live="polite"><div class="side-in" id="sideIn"></div></aside>
   </section>
 
-  <section aria-labelledby="chartTitle" style="display:flex;flex-direction:column;gap:16px">
-    <div class="chart-head"><h2 id="chartTitle">Star chart</h2><p id="chartMeta"></p></div>
-    <div class="chart" id="chart"></div>
+  <section class="headlines" id="headlines" aria-labelledby="hlTitle" style="display:flex;flex-direction:column;gap:16px">
+    <div class="hl-head">
+      <div><h2 id="hlTitle">Headlines</h2><p id="hlMeta"></p></div>
+      <div class="seg" role="group" aria-label="Sort headlines">
+        <button type="button" data-sort="latest" aria-pressed="true">Latest</button>
+        <button type="button" data-sort="covered" aria-pressed="false">Most covered</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs" role="group" aria-label="Topic"></div>
+    <div class="feed" id="feed"></div>
+    <button class="btn small quiet" type="button" id="moreBtn" hidden style="align-self:center"></button>
     <p class="foot" id="foot"></p>
   </section>
 </div>
-
-<aside class="hold" id="hold" hidden aria-live="polite"></aside>
 
 <script>
 (() => {
@@ -235,7 +264,7 @@ const CATS = [
   { k:"science",  name:"Science",  hue:120, c:"var(--science)" },
 ];
 const CAT = Object.fromEntries(CATS.map(c => [c.k, c]));
-// Sectors run eastward around Earth, starting with the Americas on the left. Worldwide stories sit over the Pacific.
+// Regions run eastward around Earth from the Americas; worldwide stories sit over the Pacific.
 const SECTORS = [
   { k:"AMERICAS", name:"Americas",     lon:[-125, -35] },
   { k:"EUROPE",   name:"Europe",       lon:[-10, 40] },
@@ -245,19 +274,23 @@ const SECTORS = [
   { k:"GLOBAL",   name:"Worldwide",    lon:null },
 ];
 const REGION_NAME = Object.fromEntries(SECTORS.map(s => [s.k, s.name]));
+const LIVE_URL = "https://dbajh2005.github.io/globewire/";
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const phone = () => matchMedia("(max-width:760px)").matches;
 const $ = id => document.getElementById(id);
 
-const S = { mode:"demo", data:null, byId:new Map(), region:"ALL", clips:[], expand:{}, generated:null, confirmClear:false, pending:null };
+const S = {
+  mode:"demo", data:null, byId:new Map(), region:"ALL", desk:"all", sort:"latest", clips:[],
+  generated:null, confirmClear:false, view:"top", selId:null, showN:24, pending:null,
+};
 
 /* ---------- per-viewer storage ---------- */
 function restore(){ try { const c = JSON.parse(localStorage.getItem("gw.clips") || "[]"); if (Array.isArray(c)) S.clips = c.slice(0, 200); } catch(e){} }
 function persist(){ try { localStorage.setItem("gw.clips", JSON.stringify(S.clips)); } catch(e){} }
 
-/* ---------- demo sky: sample stories, clearly not real news (no real places attached) ---------- */
+/* ---------- sample stories for the demo (clearly not real news) ---------- */
 function demoData(){
   const m = 60e3, now = Date.now();
-  // [desk, region, outlets, minutes old, outlets at the previous update (null = steady), headline, summary]
   const rows = [
     ["world","MIDEAST",5,18,2,"Ceasefire talks resume after overnight shelling along disputed border","Negotiators returned to the table hours after the heaviest exchange of fire in weeks. Mediators say a prisoner swap is on the agenda."],
     ["world","ASIA-PAC",3,140,null,"Floods displace thousands as monsoon rains swamp river delta","Emergency shelters are full in two provinces and rail links are cut. More rain is forecast through the weekend."],
@@ -285,8 +318,8 @@ function demoData(){
   ];
   return {
     app:"globewire", version:2, demo:true, generated:new Date(now).toISOString(), sources:[],
-    stories: rows.map((r,i) => ({
-      id:"demo"+i, cat:r[0], region:r[1], place:null, lon:null, signal:r[2], ts:now - r[3]*m,
+    stories: rows.map((r, i) => ({
+      id:"demo" + i, cat:r[0], region:r[1], place:null, lon:null, signal:r[2], ts:now - r[3] * m,
       breaking:r[4] !== null, prev_signal:r[4] || 0, title:r[5], summary:r[6],
       url:"", source:"Sample wire", sources:Array.from({ length:r[2] }, (_, j) => "Sample feed " + (j + 1)), items:[],
     })),
@@ -310,32 +343,35 @@ function setData(j, mode){
   S.data = { ...j, stories:clean };
   S.byId = new Map(clean.map(s => [s.id, s]));
   S.mode = mode; S.generated = j.generated ? new Date(j.generated) : new Date();
-  $("refresh").hidden = mode !== "live";
+  $("demoNote").hidden = mode === "live";
   $("loadTape").hidden = mode === "live";
 }
 const ageH = s => (Date.now() - s.ts) / 3.6e6;
 const score = s => s.signal * 3 + Math.max(0, 24 - ageH(s)) / 6 + (s.breaking ? 4 : 0);
 const inRegion = s => S.region === "ALL" || s.region === S.region;
-const stories = () => (S.data ? S.data.stories : []).filter(inRegion);
-const byCat = k => stories().filter(s => s.cat === k).sort((a, b) => score(b) - score(a));
+const inDesk = s => S.desk === "all" || s.cat === S.desk;
+const visible = () => (S.data ? S.data.stories : []).filter(s => inRegion(s) && inDesk(s));
 function briefPicks(n = 7){
-  const picks = [], seen = new Set();
-  for (const c of CATS){ const s = byCat(c.k)[0]; if (s){ picks.push(s); seen.add(s.id); } }
-  for (const s of [...stories()].sort((a, b) => score(b) - score(a))){ if (picks.length >= n) break; if (!seen.has(s.id)){ picks.push(s); seen.add(s.id); } }
-  return picks;
+  const pool = visible().sort((a, b) => score(b) - score(a)), picks = [], seen = new Set();
+  for (const c of CATS){ const s = pool.find(x => x.cat === c.k); if (s){ picks.push(s); seen.add(s.id); } }
+  for (const s of pool){ if (picks.length >= n) break; if (!seen.has(s.id)){ picks.push(s); seen.add(s.id); } }
+  return picks.sort((a, b) => score(b) - score(a));
 }
 
 /* ---------- helpers ---------- */
-const esc = t => String(t).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+const esc = t => String(t ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
 function ago(ts){
   const min = Math.max(0, Math.round((Date.now() - ts) / 60e3));
-  if (min < 60) return min + "m ago";
-  if (min < 48 * 60) return Math.round(min / 60) + "h ago";
+  if (min < 1) return "just now";
+  if (min < 60) return min + " min ago";
+  const h = Math.round(min / 60);
+  if (h < 48) return h + (h === 1 ? " hour ago" : " hours ago");
   return new Date(ts).toLocaleDateString(undefined, { day:"numeric", month:"short" });
 }
+const outlets = n => n + (n === 1 ? " outlet" : " outlets");
 const where = s => s.place ? `${REGION_NAME[s.region]} · ${s.place}` : REGION_NAME[s.region];
-const sigDots = n => `<span class="sd" aria-label="Carried by ${n} outlet${n > 1 ? "s" : ""}">${[1,2,3,4,5].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`;
-const breakingText = s => s.prev_signal ? `Breaking · coverage jumped from ${s.prev_signal} to ${s.signal} outlets` : `Breaking · appeared on ${s.signal} outlets at once`;
+const metaLine = s => `${esc(s.source)} · ${ago(s.ts)} · ${outlets(s.signal)}`;
+const breakingText = s => s.prev_signal ? `Breaking: now on ${s.signal} outlets, up from ${s.prev_signal}` : `Breaking: on ${s.signal} outlets at once`;
 const isKept = id => S.clips.some(c => c.id === id);
 const find = id => S.byId.get(id) || S.clips.find(c => c.id === id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -346,38 +382,38 @@ function rng(str){
   return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
 let toastT = 0;
-function toast(msg){ const t = $("toast"); t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.textContent = "", 2600); }
+function toast(msg){ const t = $("toast"); t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.textContent = "", 2800); }
 
-/* ---------- planet looks ---------- */
+/* ---------- planet looks: sharper centres, softer halos ---------- */
 const LOOK = new Map();
 function look(s){
   const key = s.id + ":" + s.signal;
   if (LOOK.has(key)) return LOOK.get(key);
   const r = rng(s.id);
   const o = {
-    hue:CAT[s.cat].hue + (r() - .5) * 28, sat:55 + r() * 25, lit:50 + r() * 12,
-    bands:Array.from({ length:2 + Math.floor(r() * 4) }, () => ({ y:r() * 2 - 1, h:.08 + r() * .24, a:.07 + r() * .17, dark:r() > .5 })),
+    hue:CAT[s.cat].hue + (r() - .5) * 26, sat:62 + r() * 22, lit:54 + r() * 10,
+    bands:Array.from({ length:2 + Math.floor(r() * 4) }, () => ({ y:r() * 2 - 1, h:.08 + r() * .24, a:.07 + r() * .15, dark:r() > .5 })),
     ring:s.signal >= 3, tilt:-.4 + r() * .8, ringW:1.7 + r() * .6,
   };
   LOOK.set(key, o); return o;
 }
 function drawRing(c, x, y, r, o, back){
   c.save(); c.translate(x, y); c.rotate(o.tilt);
-  c.strokeStyle = `hsla(${o.hue},60%,82%,${back ? .35 : .7})`; c.lineWidth = Math.max(1, r * .16);
+  c.strokeStyle = `hsla(${o.hue},60%,84%,${back ? .35 : .75})`; c.lineWidth = Math.max(1, r * .15);
   c.beginPath(); c.ellipse(0, 0, r * o.ringW, r * .36, 0, back ? Math.PI : 0, back ? Math.PI * 2 : Math.PI); c.stroke();
   c.restore();
 }
 function drawPlanet(c, x, y, r, o, lx, ly, alpha, hl, glow = 0){
   c.save(); c.globalAlpha = alpha;
-  const hr = r * (hl ? 3.4 : 2.3 + glow * 1.4);
-  const g = c.createRadialGradient(x, y, r * .7, x, y, hr);
-  g.addColorStop(0, `hsla(${o.hue},90%,68%,${hl ? .5 : .18 + glow * .4})`); g.addColorStop(1, `hsla(${o.hue},90%,68%,0)`);
+  const hr = r * (hl ? 2.4 : 1.7 + glow * 1.1);
+  const g = c.createRadialGradient(x, y, r * .85, x, y, hr);
+  g.addColorStop(0, `hsla(${o.hue},90%,70%,${hl ? .38 : .11 + glow * .3})`); g.addColorStop(1, `hsla(${o.hue},90%,70%,0)`);
   c.fillStyle = g; c.beginPath(); c.arc(x, y, hr, 0, 7); c.fill();
   if (o.ring) drawRing(c, x, y, r, o, true);
-  const b = c.createRadialGradient(x + lx * r * .45, y + ly * r * .45, r * .1, x, y, r);
-  b.addColorStop(0, `hsl(${o.hue},${o.sat}%,${Math.min(92, o.lit + 24 + glow * 8)}%)`);
-  b.addColorStop(.55, `hsl(${o.hue},${o.sat}%,${o.lit}%)`);
-  b.addColorStop(1, `hsl(${o.hue},${o.sat}%,${Math.max(8, o.lit - 32)}%)`);
+  const b = c.createRadialGradient(x + lx * r * .35, y + ly * r * .35, r * .05, x, y, r);
+  b.addColorStop(0, `hsl(${o.hue},${o.sat}%,${Math.min(94, o.lit + 26 + glow * 6)}%)`);
+  b.addColorStop(.45, `hsl(${o.hue},${o.sat}%,${o.lit}%)`);
+  b.addColorStop(1, `hsl(${o.hue},${o.sat}%,${Math.max(10, o.lit - 30)}%)`);
   c.beginPath(); c.arc(x, y, r, 0, 7); c.fillStyle = b; c.fill();
   c.save(); c.clip();
   for (const bd of o.bands){ c.fillStyle = bd.dark ? `rgba(0,0,0,${bd.a})` : `rgba(255,255,255,${bd.a})`; c.fillRect(x - r, y + bd.y * r, r * 2, bd.h * r); }
@@ -385,17 +421,18 @@ function drawPlanet(c, x, y, r, o, lx, ly, alpha, hl, glow = 0){
   sh.addColorStop(0, "rgba(2,3,12,0)"); sh.addColorStop(.55, "rgba(2,3,12,0)"); sh.addColorStop(1, "rgba(2,3,12,.8)");
   c.fillStyle = sh; c.fillRect(x - r, y - r, r * 2, r * 2);
   c.restore();
+  c.strokeStyle = `hsla(${o.hue},70%,85%,.35)`; c.lineWidth = 1; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke();
   if (o.ring) drawRing(c, x, y, r, o, false);
-  if (hl){ c.strokeStyle = `hsla(${o.hue},100%,82%,.9)`; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r + 6, 0, 7); c.stroke(); }
+  if (hl){ c.strokeStyle = `hsla(${o.hue},100%,84%,.95)`; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r + 6, 0, 7); c.stroke(); }
   c.restore();
 }
 
-/* ---------- the map: geometry and layout ---------- */
+/* ---------- the map ---------- */
 const stage = $("stage"), cv = $("space"), ctx = cv.getContext("2d");
-let W = 0, H = 0, DPR = 1, geo = null, SECT = [], planets = [], hover = null, kbd = -1, visible = true;
+let W = 0, H = 0, DPR = 1, geo = null, SECT = [], planets = [], hover = null, kbd = -1, onScreen = true;
 const par = { x:0, y:0, tx:0, ty:0 };
-const G = { p:null, phase:"none", t0:0, dur:700, fx:0, fy:0, tm:0 };
 const T0 = performance.now();
+let beamT0 = 0;
 const STARS = Array.from({ length:260 }, (_, i) => { const r = rng("star" + i); return { x:r(), y:r(), z:r() < .7 ? 1 : r() < .8 ? 2 : 3, ph:r() * 6.28, sp:.4 + r() * 2 }; });
 const AGE_MAX = 30, RINGS = [[1, "1h"], [6, "6h"], [24, "24h"]];
 let shoot = null, nextShoot = 5;
@@ -403,23 +440,21 @@ let shoot = null, nextShoot = 5;
 function geom(){
   const narrow = W < 640;
   const cx = W / 2, cy = H / 2 + 8;
-  const Rx = Math.max(60, W / 2 - (narrow ? 26 : 74));
-  const Ry = Math.max(50, Math.min(H / 2 - 36, Rx * (narrow ? .92 : .56)));
+  const Rx = Math.max(60, W / 2 - (narrow ? 26 : 66));
+  const Ry = Math.max(50, Math.min(H / 2 - 36, Rx * (narrow ? .92 : W < 1000 ? .7 : .56)));
   const earthR = Math.max(14, Math.min(Rx, Ry) * .11);
   geo = { cx, cy, Rx, Ry, earthR, r0:Math.min(.4, earthR * 2.1 / Ry) };
 }
 const ageFrac = h => geo.r0 + (1 - geo.r0) * Math.sqrt(clamp(h, 0, AGE_MAX) / AGE_MAX);
-const baseR = s => clamp(W / 1200, .58, 1) * (5 + 2.4 * Math.min(s.signal, 6));
+const baseR = s => clamp(W / 1100, .62, 1) * (5 + 2.4 * Math.min(s.signal, 6));
 const deg = d => d * Math.PI / 180;
 
 function layout(){
   if (!S.data || !geo) return;
-  const heldId = G.p && G.p.s.id;
-  const per = W < 640 ? 32 : 64;
+  const per = W < 640 ? 30 : W < 1000 ? 48 : 64;
   const top = [...S.data.stories].sort((a, b) => score(b) - score(a)).slice(0, per);
   const counts = Object.fromEntries(SECTORS.map(s => [s.k, 0])); top.forEach(s => counts[s.region]++);
-  const total = top.length || 1;
-  const width = k => 28 + 192 * counts[k] / total;
+  const total = top.length || 1, width = k => 28 + 192 * counts[k] / total;
   let a = 180 - width("AMERICAS") / 2;
   SECT = SECTORS.map(sec => { const w = width(sec.k), o = { ...sec, a0:a, a1:a + w }; a += w; return o; });
   const old = new Map(planets.map(p => [p.s.id, p]));
@@ -429,14 +464,12 @@ function layout(){
     u = clamp(u + (r() - .5) * .22, 0, 1);
     const pad = Math.min(5, (sec.a1 - sec.a0) * .18);
     const th = deg(sec.a0 + pad + (sec.a1 - sec.a0 - 2 * pad) * u), f = ageFrac(ageH(s));
-    const persp = .84 + .16 * (Math.sin(th) + 1) / 2;
-    const prev = old.get(s.id);
-    return { s, th, x:geo.cx + geo.Rx * f * Math.cos(th), y:geo.cy + geo.Ry * f * Math.sin(th), r:baseR(s) * persp, persp,
+    const persp = .84 + .16 * (Math.sin(th) + 1) / 2, prev = old.get(s.id);
+    return { s, x:geo.cx + geo.Rx * f * Math.cos(th), y:geo.cy + geo.Ry * f * Math.sin(th), r:baseR(s) * persp, persp,
              look:look(s), bob:r() * 6.28, born:prev ? prev.born : 0, i };
   });
   relax();
   for (const p of planets){ p.bx = p.x; p.by = p.y; p.ang = Math.atan2((p.y - geo.cy) / geo.Ry, (p.x - geo.cx) / geo.Rx); }
-  if (heldId){ const p = planets.find(p => p.s.id === heldId); G.p = p || null; if (!p) G.phase = "none"; }
   kbd = -1; hover = null; hideTip(); placeSectors();
 }
 function relax(){
@@ -445,7 +478,7 @@ function relax(){
     for (let i = 0; i < planets.length; i++) for (let j = i + 1; j < planets.length; j++){
       const a = planets[i], b = planets[j];
       let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
-      const min = a.r + b.r + 4;
+      const min = a.r + b.r + 5;
       if (d < min){
         if (d < .01){ dx = Math.cos(i + j); dy = Math.sin(i + j); d = 1; }
         const push = (min - d) / 2; dx /= d; dy /= d;
@@ -464,34 +497,34 @@ function placeSectors(){
   const all = S.data ? S.data.stories : [];
   $("sectors").innerHTML = SECT.map(sec => {
     const mid = deg((sec.a0 + sec.a1) / 2);
-    const x = clamp(geo.cx + (geo.Rx + (W < 640 ? 4 : 18)) * Math.cos(mid), 58, W - 58);
-    const y = clamp(geo.cy + (geo.Ry + 16) * Math.sin(mid), 14, H - 14);
+    const x = clamp(geo.cx + (geo.Rx + (W < 640 ? 4 : 18)) * Math.cos(mid), 60, W - 60);
+    const y = clamp(geo.cy + (geo.Ry + 16) * Math.sin(mid), 16, H - 16);
     const n = all.filter(s => s.region === sec.k).length;
-    return `<button class="sector" data-region="${sec.k}" aria-pressed="${S.region === sec.k}" style="left:${x}px;top:${y}px">${sec.name}<span>${n}</span></button>`;
+    return `<button type="button" class="sector" data-region="${sec.k}" aria-pressed="${S.region === sec.k}" style="left:${x}px;top:${y}px">${sec.name}<span>${n}</span></button>`;
   }).join("");
 }
 function resize(){
   const r = stage.getBoundingClientRect();
+  if (r.width < 10) return;
   W = r.width; H = r.height; DPR = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   geom(); layout(); requestDraw();
 }
 
-/* ---------- drawing ---------- */
 function drawStars(t){
   par.x += (par.tx - par.x) * .05; par.y += (par.ty - par.y) * .05;
   for (const s of STARS){
     const px = ((s.x * W + par.x * s.z * 8) % W + W) % W, py = ((s.y * H + par.y * s.z * 8) % H + H) % H;
-    ctx.fillStyle = `rgba(222,230,255,${(.3 + .17 * s.z) * (reduce ? 1 : .65 + .35 * Math.sin(t * s.sp + s.ph))})`;
+    ctx.fillStyle = `rgba(222,230,255,${(.28 + .16 * s.z) * (reduce ? 1 : .65 + .35 * Math.sin(t * s.sp + s.ph))})`;
     const sz = .5 + s.z * .55; ctx.fillRect(px, py, sz, sz);
   }
   if (reduce) return;
-  if (!shoot && t > nextShoot){ const r = Math.random; shoot = { x:r() * W, y:r() * H * .3, vx:300 + r() * 200, vy:110 + r() * 80, t0:t }; nextShoot = t + 8 + r() * 9; }
+  if (!shoot && t > nextShoot){ const r = Math.random; shoot = { x:r() * W, y:r() * H * .3, vx:300 + r() * 200, vy:110 + r() * 80, t0:t }; nextShoot = t + 9 + r() * 9; }
   if (shoot){
     const k = t - shoot.t0, x = shoot.x + shoot.vx * k, y = shoot.y + shoot.vy * k;
     const g = ctx.createLinearGradient(x, y, x - shoot.vx * .18, y - shoot.vy * .18);
-    g.addColorStop(0, "rgba(255,255,255,.8)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    g.addColorStop(0, "rgba(255,255,255,.75)"); g.addColorStop(1, "rgba(255,255,255,0)");
     ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - shoot.vx * .18, y - shoot.vy * .18); ctx.stroke();
     if (k > 1.2) shoot = null;
   }
@@ -501,7 +534,7 @@ function drawDisk(t){
   const { cx, cy, Rx, Ry, r0 } = geo;
   ctx.save(); ctx.translate(cx, cy); ctx.scale(Rx, Ry);
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-  g.addColorStop(0, "rgba(76,201,240,.08)"); g.addColorStop(1, "rgba(76,201,240,.015)");
+  g.addColorStop(0, "rgba(76,201,240,.07)"); g.addColorStop(1, "rgba(76,201,240,.012)");
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, 7); ctx.fill();
   if (S.region !== "ALL"){
     const sec = SECT.find(s => s.k === S.region);
@@ -509,149 +542,127 @@ function drawDisk(t){
   }
   if (!reduce){
     const phi = sweepAngle(t);
-    for (let i = 0; i < 16; i++){
-      const a1 = phi - i * .03;
-      ctx.fillStyle = `rgba(139,233,255,${.085 * (1 - i / 16)})`;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 1, a1 - .03, a1); ctx.closePath(); ctx.fill();
-    }
+    for (let i = 0; i < 16; i++){ const a1 = phi - i * .03; ctx.fillStyle = `rgba(139,233,255,${.07 * (1 - i / 16)})`; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 1, a1 - .03, a1); ctx.closePath(); ctx.fill(); }
   }
   ctx.restore();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(160,175,255,.38)"; ctx.beginPath(); ctx.ellipse(cx, cy, Rx, Ry, 0, 0, 7); ctx.stroke();
+  ctx.lineWidth = 1; ctx.strokeStyle = "rgba(170,182,255,.36)"; ctx.beginPath(); ctx.ellipse(cx, cy, Rx, Ry, 0, 0, 7); ctx.stroke();
   for (let d = 0; d < 360; d += 5){
     const a = deg(d), inner = d % 30 === 0 ? .955 : .982;
-    ctx.strokeStyle = d % 30 === 0 ? "rgba(160,175,255,.4)" : "rgba(160,175,255,.18)";
+    ctx.strokeStyle = d % 30 === 0 ? "rgba(170,182,255,.38)" : "rgba(170,182,255,.16)";
     ctx.beginPath(); ctx.moveTo(cx + Rx * inner * Math.cos(a), cy + Ry * inner * Math.sin(a)); ctx.lineTo(cx + Rx * Math.cos(a), cy + Ry * Math.sin(a)); ctx.stroke();
   }
   ctx.setLineDash([2, 6]);
-  for (const [h] of RINGS){ const f = ageFrac(h); ctx.strokeStyle = "rgba(160,175,255,.2)"; ctx.beginPath(); ctx.ellipse(cx, cy, Rx * f, Ry * f, 0, 0, 7); ctx.stroke(); }
-  ctx.setLineDash([3, 5]); ctx.strokeStyle = "rgba(160,175,255,.14)";
+  for (const [h] of RINGS){ const f = ageFrac(h); ctx.strokeStyle = "rgba(170,182,255,.2)"; ctx.beginPath(); ctx.ellipse(cx, cy, Rx * f, Ry * f, 0, 0, 7); ctx.stroke(); }
+  ctx.setLineDash([3, 5]); ctx.strokeStyle = "rgba(170,182,255,.13)";
   for (const sec of SECT){ const a = deg(sec.a0); ctx.beginPath(); ctx.moveTo(cx + Rx * r0 * .8 * Math.cos(a), cy + Ry * r0 * .8 * Math.sin(a)); ctx.lineTo(cx + Rx * Math.cos(a), cy + Ry * Math.sin(a)); ctx.stroke(); }
   ctx.setLineDash([]);
-  // age labels sit on the spoke over the Pacific, where no planets are placed
   const la = SECT.length ? deg(SECT[0].a0) : Math.PI;
-  ctx.font = `600 ${W < 640 ? 9 : 10}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `500 ${W < 640 ? 10 : 11}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   for (const [h, label] of RINGS){
     const f = ageFrac(h), x = cx + Rx * f * Math.cos(la), y = cy + Ry * f * Math.sin(la);
-    ctx.fillStyle = "rgba(4,5,12,.85)"; ctx.fillRect(x - 15, y - 7, 30, 14);
-    ctx.fillStyle = "rgba(160,175,255,.75)"; ctx.fillText(label, x, y);
+    ctx.fillStyle = "rgba(4,5,12,.88)"; ctx.fillRect(x - 16, y - 8, 32, 16);
+    ctx.fillStyle = "rgba(195,201,230,.85)"; ctx.fillText(label, x, y);
   }
   if (!reduce){
     const phi = sweepAngle(t);
-    ctx.strokeStyle = "rgba(139,233,255,.45)"; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(139,233,255,.4)"; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(cx + Rx * r0 * .6 * Math.cos(phi), cy + Ry * r0 * .6 * Math.sin(phi)); ctx.lineTo(cx + Rx * Math.cos(phi), cy + Ry * Math.sin(phi)); ctx.stroke();
   }
 }
 function drawGlobe(t){
   const { cx, cy, earthR:R } = geo;
-  const g = ctx.createRadialGradient(cx, cy, R * .6, cx, cy, R * 2.6);
-  g.addColorStop(0, "rgba(76,201,240,.3)"); g.addColorStop(1, "rgba(76,201,240,0)");
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 2.6, 0, 7); ctx.fill();
+  const g = ctx.createRadialGradient(cx, cy, R * .6, cx, cy, R * 2.4);
+  g.addColorStop(0, "rgba(76,201,240,.26)"); g.addColorStop(1, "rgba(76,201,240,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 2.4, 0, 7); ctx.fill();
   const b = ctx.createRadialGradient(cx - R * .35, cy - R * .4, R * .1, cx, cy, R);
   b.addColorStop(0, "#1b4d6e"); b.addColorStop(1, "#06111d");
   ctx.fillStyle = b; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
   ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.clip();
   ctx.strokeStyle = "rgba(139,233,255,.55)"; ctx.lineWidth = 1;
   for (const lat of [-60, -30, 0, 30, 60]){ const a = deg(lat), y = cy + R * Math.sin(a), rx = R * Math.cos(a); ctx.beginPath(); ctx.ellipse(cx, y, rx, rx * .16, 0, 0, 7); ctx.stroke(); }
-  for (let k = 0; k < 6; k++){
-    const ph = t * .22 + k * Math.PI / 6, w = Math.abs(Math.cos(ph)) * R;
-    ctx.globalAlpha = .35 + .55 * Math.abs(Math.sin(ph));
-    ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(.5, w), R, 0, 0, 7); ctx.stroke();
-  }
+  for (let k = 0; k < 6; k++){ const ph = t * .22 + k * Math.PI / 6, w = Math.abs(Math.cos(ph)) * R; ctx.globalAlpha = .35 + .55 * Math.abs(Math.sin(ph)); ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(.5, w), R, 0, 0, 7); ctx.stroke(); }
   ctx.restore();
   ctx.strokeStyle = "rgba(139,233,255,.8)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
 }
-function drawBeam(ax, ay, px, py, r, hue, now){
-  const dx = px - ax, dy = py - ay, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, wa = 30, wp = r * 1.3;
-  const g = ctx.createLinearGradient(ax, ay, px, py);
-  g.addColorStop(0, `hsla(${hue},100%,78%,.32)`); g.addColorStop(1, `hsla(${hue},100%,78%,.06)`);
-  ctx.fillStyle = g; ctx.beginPath();
-  ctx.moveTo(ax + nx * wa, ay + ny * wa); ctx.lineTo(px + nx * wp, py + ny * wp); ctx.lineTo(px - nx * wp, py - ny * wp); ctx.lineTo(ax - nx * wa, ay - ny * wa);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = `hsla(${hue},100%,88%,.55)`; ctx.lineWidth = 1;
-  for (let i = 0; i < 5; i++){
-    const f = ((now / 500) + i / 5) % 1, qx = px - dx * f, qy = py - dy * f, w = wp + (wa - wp) * f;
-    ctx.beginPath(); ctx.moveTo(qx + nx * w, qy + ny * w); ctx.lineTo(qx - nx * w, qy - ny * w); ctx.stroke();
-  }
-}
+// where the reading panel sits, in canvas coordinates (null on phones, where the story is a sheet)
 function anchor(){
-  const r = cv.getBoundingClientRect(), wide = innerWidth > 760;
-  const vx = wide ? innerWidth - 16 - Math.min(410, innerWidth - 32) + 64 : innerWidth / 2;
-  const vy = wide ? 16 + 64 : innerHeight - 40;
-  return { x:vx - r.left, y:vy - r.top };
+  if (phone()) return null;
+  const side = $("side").getBoundingClientRect(), r = cv.getBoundingClientRect();
+  return { x:W, y:clamp(side.top - r.top + 62, 16, H - 16) };
 }
-const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-function drawFlying(now){
-  const p = G.p, k = G.dur ? Math.min(1, (now - G.t0) / G.dur) : 1, e = ease(k), tgt = anchor();
-  const from = G.phase === "fly" ? { x:G.fx, y:G.fy } : tgt;
-  const to = G.phase === "fly" ? tgt : { x:p.x, y:p.y };
-  const x = from.x + (to.x - from.x) * e, y = from.y + (to.y - from.y) * e - Math.sin(e * Math.PI) * 36;
-  const rr = G.phase === "fly" ? p.r * (1 + 1.5 * e) : p.r * (2.5 - 1.5 * e);
-  drawBeam(tgt.x, tgt.y, x, y, rr, p.look.hue, now);
-  drawPlanet(ctx, x, y, rr, p.look, -.5, -.6, 1, false);
-  if (k >= 1){ if (G.phase === "fly") G.phase = "held"; else { G.phase = "none"; G.p = null; } }
+function drawLink(p, now){
+  const a = anchor(); if (!a) return;
+  const hue = p.look.hue, k = reduce ? 1 : Math.min(1, (now - beamT0) / 650);
+  const sx = p.x + p.r + 6, sy = p.y;
+  if (k < 1){
+    const dx = a.x - sx, dy = a.y - sy, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, wa = 26 * (1 - k * .6), wp = p.r * 1.2;
+    const g = ctx.createLinearGradient(sx, sy, a.x, a.y);
+    g.addColorStop(0, `hsla(${hue},100%,78%,${.1 * (1 - k)})`); g.addColorStop(1, `hsla(${hue},100%,78%,${.35 * (1 - k)})`);
+    ctx.fillStyle = g; ctx.beginPath();
+    ctx.moveTo(sx + nx * wp, sy + ny * wp); ctx.lineTo(a.x + nx * wa, a.y + ny * wa); ctx.lineTo(a.x - nx * wa, a.y - ny * wa); ctx.lineTo(sx - nx * wp, sy - ny * wp);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.save(); ctx.setLineDash([4, 5]); ctx.lineDashOffset = reduce ? 0 : -now / 60;
+  ctx.strokeStyle = `hsla(${hue},90%,78%,${.25 + .35 * k})`; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx + (a.x - sx) * .5, sy, a.x - (a.x - sx) * .3, a.y, a.x, a.y); ctx.stroke();
+  ctx.restore();
 }
 
 let raf = 0;
 function draw(now){
   raf = 0;
   if (!geo || W < 60 || H < 60) return loop();
-  if (!visible && G.phase === "none") return loop();
+  if (!onScreen) return loop();
   const t = reduce ? 0 : (now - T0) / 1000;
   ctx.clearRect(0, 0, W, H);
-  drawStars(t);
-  drawDisk(t);
-  const phi = sweepAngle(t), kp = kbd >= 0 ? planets[kbd] : null;
+  drawStars(t); drawDisk(t);
+  const phi = sweepAngle(t), kp = kbd >= 0 ? planets[kbd] : null, sel = S.selId;
   for (const p of planets){
-    p.x = p.bx; p.y = p.by + (reduce ? 0 : Math.sin(t * 1.1 + p.bob) * 1.4);
+    p.x = p.bx; p.y = p.by + (reduce ? 0 : Math.sin(t * 1.1 + p.bob) * 1.3);
     if (p.born){
       const k = (now - p.born) / 1800;
-      if (k < 1){
-        const e = 1 - Math.pow(1 - k, 3), sx = geo.cx + geo.Rx * 1.3 * Math.cos(p.ang), sy = geo.cy + geo.Ry * 1.3 * Math.sin(p.ang);
-        p.tailX = sx + (p.bx - sx) * Math.max(0, e - .25); p.tailY = sy + (p.by - sy) * Math.max(0, e - .25);
-        p.x = sx + (p.bx - sx) * e; p.y = sy + (p.by - sy) * e;
-      } else p.born = 0;
+      if (k < 1){ const e = 1 - Math.pow(1 - k, 3), sx = geo.cx + geo.Rx * 1.3 * Math.cos(p.ang), sy = geo.cy + geo.Ry * 1.3 * Math.sin(p.ang); p.x = sx + (p.bx - sx) * e; p.y = sy + (p.by - sy) * e; }
+      else p.born = 0;
     }
-    p.on = inRegion(p.s);
+    p.on = inRegion(p.s) && inDesk(p.s);
   }
   const order = [...planets].sort((a, b) => a.y - b.y);
-  let globeDone = false;
+  let globeDone = false, selP = null;
   for (const p of order){
     if (!globeDone && p.y > geo.cy){ drawGlobe(t); globeDone = true; }
-    if (p === G.p && G.phase !== "none"){
-      ctx.setLineDash([3, 4]); ctx.strokeStyle = `hsla(${p.look.hue},80%,75%,.45)`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.stroke(); ctx.setLineDash([]);
-      continue;
-    }
-    if (p.born && p.tailX !== undefined){
-      const g = ctx.createLinearGradient(p.x, p.y, p.tailX, p.tailY);
-      g.addColorStop(0, `hsla(${p.look.hue},90%,80%,.7)`); g.addColorStop(1, `hsla(${p.look.hue},90%,80%,0)`);
-      ctx.strokeStyle = g; ctx.lineWidth = p.r * .8; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tailX, p.tailY); ctx.stroke(); ctx.lineCap = "butt";
-    }
     let lx = geo.cx - p.x, ly = geo.cy - p.y; const d = Math.hypot(lx, ly) || 1; lx /= d; ly /= d;
     const behind = ((phi - p.ang) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-    const glow = reduce || !p.on ? 0 : Math.max(0, 1 - behind / .7);
-    if (p.s.breaking && p.on){
+    const isSel = p.s.id === sel; if (isSel) selP = p;
+    const glow = reduce || !p.on || (sel && !isSel) ? 0 : Math.max(0, 1 - behind / .7) * .8;
+    if (p.s.breaking && p.on && !(sel && !isSel)){
       for (let k = 0; k < (reduce ? 1 : 2); k++){
         const ph = reduce ? .35 : ((t * .65 + k * .5 + p.bob) % 1);
-        ctx.strokeStyle = `rgba(255,150,120,${(1 - ph) * .8})`; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1.3 + 2.6 * ph), 0, 7); ctx.stroke();
+        ctx.strokeStyle = `rgba(255,154,125,${(1 - ph) * .75})`; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1.3 + 2.4 * ph), 0, 7); ctx.stroke();
       }
     }
-    drawPlanet(ctx, p.x, p.y, p.r, p.look, lx, ly, p.on ? .62 + .38 * (p.persp - .84) / .16 : .1, p.on && (p === hover || p === kp), glow);
+    let alpha = p.on ? .66 + .34 * (p.persp - .84) / .16 : .1;
+    if (sel && !isSel && p.on) alpha *= .42;
+    drawPlanet(ctx, p.x, p.y, p.r, p.look, lx, ly, alpha, p.on && (isSel || p === hover || p === kp), glow);
+    if (isSel){
+      const pr = reduce ? .5 : (t * .8) % 1;
+      ctx.strokeStyle = `rgba(139,233,255,${.8 * (1 - pr)})`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 8 + pr * 14, 0, 7); ctx.stroke();
+    }
   }
   if (!globeDone) drawGlobe(t);
-  if (G.p && (G.phase === "fly" || G.phase === "return")) drawFlying(now);
+  if (selP) drawLink(selP, now);
   const tipP = hover || kp;
-  if (tipP && !(tipP === G.p && G.phase !== "none")) placeTip(tipP);
+  if (tipP) placeTip(tipP);
   loop();
 }
 function loop(){
-  if (reduce && G.phase !== "fly" && G.phase !== "return" && !planets.some(p => p.born)) return;
+  if (reduce && !planets.some(p => p.born)) return;
   if (!raf) raf = requestAnimationFrame(draw);
 }
 function requestDraw(){ if (!raf) raf = requestAnimationFrame(draw); }
 new ResizeObserver(resize).observe(stage);
-new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) requestDraw(); }).observe(stage);
+new IntersectionObserver(es => { onScreen = es[0].isIntersecting; if (onScreen) requestDraw(); }).observe(stage);
 
 /* ---------- tooltip & pointer ---------- */
 const tip = $("tip");
@@ -661,7 +672,7 @@ function placeTip(p){
     tipFor = p; const c = CAT[p.s.cat];
     tip.style.setProperty("--c", c.c);
     tip.innerHTML = `<div class="k">${c.name} · ${esc(where(p.s))}</div><div class="h">${esc(p.s.title)}</div>
-      <div class="m">${p.s.signal} outlet${p.s.signal > 1 ? "s" : ""} · ${ago(p.s.ts)}</div>${p.s.breaking ? `<div class="b">${breakingText(p.s)}</div>` : ""}`;
+      <div class="m">${outlets(p.s.signal)} · ${ago(p.s.ts)}</div>${p.s.breaking ? `<div class="b">${breakingText(p.s)}</div>` : ""}`;
     tip.hidden = false;
   }
   const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -673,7 +684,7 @@ function hideTip(){ tipFor = null; tip.hidden = true; }
 function hit(mx, my){
   let best = null, bd = 1e9;
   for (const p of planets){
-    if (!p.on || (p === G.p && G.phase !== "none")) continue;
+    if (!p.on) continue;
     const d = Math.hypot(p.x - mx, p.y - my), rr = Math.max(p.r + 7, 16);
     if (d < rr && d - p.r < bd){ bd = d - p.r; best = p; }
   }
@@ -683,57 +694,34 @@ const local = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r
 stage.addEventListener("pointermove", e => {
   const [x, y] = local(e);
   par.tx = (x / W - .5) * 2; par.ty = (y / H - .5) * 2;
-  if (e.pointerType !== "mouse" || e.target.closest(".sector,.flyhud")) return;
+  if (e.pointerType !== "mouse" || e.target.closest(".sector,.flyhud,.regionchip")) return;
   const p = hit(x, y);
   if (p !== hover){ hover = p; kbd = -1; if (!p) hideTip(); requestDraw(); }
-  stage.style.cursor = p ? "grab" : "default";
+  stage.style.cursor = p ? "pointer" : "default";
 });
 stage.addEventListener("pointerleave", () => { hover = null; hideTip(); requestDraw(); });
 stage.addEventListener("pointerdown", e => {
-  if (e.target.closest(".flyhud,.sector")) return;
+  if (e.target.closest(".flyhud,.sector,.regionchip")) return;
   const [x, y] = local(e), p = hit(x, y);
-  if (p){ stopFlyby(); grabPlanet(p); }
+  if (p){ stopFlyby(); select(p.s); }
 });
-$("sectors").addEventListener("click", e => {
-  const b = e.target.closest("[data-region]"); if (b) setRegion(S.region === b.dataset.region ? "ALL" : b.dataset.region);
-});
-$("regionChip").addEventListener("click", () => setRegion("ALL"));
-function setRegion(r){
-  S.region = r; stopFlyby();
-  if (G.p && !inRegion(G.p.s)) release();
-  kbd = -1; hover = null; hideTip();
-  placeSectors(); renderHud(); renderChart(); requestDraw();
-}
 
-/* ---------- grabbing ---------- */
-function grabPlanet(p, opts = {}){
-  if (G.p && G.phase !== "none"){ G.phase = "none"; G.p = null; }
-  G.p = p; G.phase = "fly"; G.fx = p.x; G.fy = p.y; G.t0 = performance.now(); G.dur = reduce ? 0 : 720;
-  hover = null; hideTip();
-  clearTimeout(G.tm); G.tm = setTimeout(() => openStory(p.s, opts), G.dur);
-  requestDraw(); loop();
+/* ---------- selecting a story ---------- */
+function select(s, opts = {}){
+  S.selId = s.id; S.view = "story"; S.storyOpts = opts; beamT0 = performance.now();
+  hover = null; hideTip(); renderSide(); renderFeed(); requestDraw(); loop();
+  if (phone()) $("sideIn").scrollTop = 0;
 }
-function grabStory(s, opts = {}){
-  const p = planets.find(p => p.s.id === s.id);
-  if (p && visible) grabPlanet(p, opts);
-  else { if (G.p){ G.phase = "none"; G.p = null; } openStory(s, opts); requestDraw(); }
-}
-function sendBack(){
-  if (G.p && G.phase === "held"){ G.phase = "return"; G.t0 = performance.now(); G.dur = reduce ? 0 : 520; }
-  else if (G.phase === "fly"){ G.phase = "none"; G.p = null; }
-  requestDraw(); loop();
-}
-function release(){
-  clearTimeout(G.tm);
-  hold.hidden = true; hold.dataset.mode = ""; S.confirmClear = false;
-  sendBack();
+function closePanel(){
+  S.selId = null; S.view = "top"; S.confirmClear = false;
+  renderSide(); renderFeed(); requestDraw();
   if (S.pending){ const j = S.pending; S.pending = null; applyUpdate(j); }
 }
 
-/* ---------- the hold ---------- */
-const hold = $("hold");
+/* ---------- the reading panel ---------- */
+const side = $("side"), sideIn = $("sideIn");
 function drawMini(o){
-  const m = hold.querySelector(".mini"); if (!m) return;
+  const m = sideIn.querySelector(".mini"); if (!m) return;
   const c = m.getContext("2d"); c.clearRect(0, 0, m.width, m.height);
   drawPlanet(c, m.width / 2, m.height / 2, m.width * (o.ring ? .2 : .26), o, -.55, -.6, 1, false);
 }
@@ -742,78 +730,92 @@ function coverage(s){
     return `<div class="cover" style="--c:${CAT[s.cat].c}"><h4>How each outlet tells it</h4><ul>${s.items.map(i =>
       `<li><span class="src">${esc(i.source)}</span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a>` : `<span>${esc(i.title)}</span>`}</li>`).join("")}</ul></div>`;
   }
-  if (s.sources && s.sources.length > 1) return `<p class="also">Also carried by ${esc(s.sources.filter(x => x !== s.source).join(", "))}</p>`;
+  if (s.sources && s.sources.length > 1) return `<p class="meta" style="margin:0">Also carried by ${esc(s.sources.filter(x => x !== s.source).join(", "))}</p>`;
   return "";
 }
-function openStory(s, opts = {}){
+function renderTop(){
+  const pool = visible().sort((a, b) => score(b) - score(a));
+  const lead = pool[0], rest = pool.slice(1, 7);
+  const filtered = S.desk !== "all" || S.region !== "ALL";
+  const scope = [S.desk !== "all" ? CAT[S.desk].name : "", S.region !== "ALL" ? REGION_NAME[S.region] : ""].filter(Boolean).join(" · ");
+  if (!lead) return `<div class="side-head"><h2>Top stories</h2></div><p class="empty">No stories ${filtered ? "match this filter" : "yet"}.${filtered ? ` <button class="btn small quiet" type="button" data-act="clearfilters">Show everything</button>` : ""}</p>`;
+  const c = CAT[lead.cat];
+  return `
+    <div class="side-head"><h2>Top stories${scope ? `<span class="meta" style="font-family:var(--f-body);display:block;margin-top:2px">${esc(scope)}</span>` : ""}</h2>
+      <button class="btn small primary" type="button" data-act="flyby">Play a 60-second briefing</button></div>
+    <button class="pick lead" type="button" data-story="${esc(lead.id)}" style="--c:${c.c}">
+      <span class="tag">${c.name} · ${esc(where(lead))}</span>
+      ${lead.breaking ? `<span class="breaking">${breakingText(lead)}</span>` : ""}
+      <span class="h">${esc(lead.title)}</span>
+      ${lead.summary ? `<span class="s">${esc(lead.summary)}</span>` : ""}
+      <span class="meta">${metaLine(lead)}</span>
+    </button>
+    ${rest.length ? `<div class="also"><span class="label">Also moving</span>${rest.map(s => `
+      <button class="pick" type="button" data-story="${esc(s.id)}" style="--c:${CAT[s.cat].c}">
+        <span class="tag">${CAT[s.cat].name}${s.breaking ? ` · <span class="hot">Breaking</span>` : ""}</span>
+        <span class="h">${esc(s.title)}</span><span class="meta">${metaLine(s)}</span>
+      </button>`).join("")}</div>` : ""}
+    <a href="#headlines" data-act="toheadlines" class="meta" style="color:var(--beam)">All headlines ↓</a>`;
+}
+function renderStory(s, opts){
   const c = CAT[s.cat], kept = isKept(s.id);
-  hold.dataset.mode = "story";
-  hold.innerHTML = `
-    <div class="hold-top">
-      <canvas class="mini" width="176" height="176" aria-hidden="true"></canvas>
-      <div class="hold-meta">
-        <span class="eyebrow" style="--c:${c.c}">${opts.flyby ? "Flyby " + opts.flyby + " · " : ""}${c.name} · ${esc(where(s))}</span>
-        <span class="sigline" style="--c:${c.c}">${sigDots(s.signal)} Carried by ${s.signal} outlet${s.signal > 1 ? "s" : ""}</span>
-        <span class="when">${esc(s.source)} · ${ago(s.ts)}</span>
+  return `
+    <div class="story-top">
+      <canvas class="mini" width="168" height="168" aria-hidden="true"></canvas>
+      <div class="story-meta">
+        <span class="tag" style="--c:${c.c}">${opts.flyby ? "Briefing " + opts.flyby + " · " : ""}${c.name} · ${esc(where(s))}</span>
+        <span class="meta">${esc(s.source)} · ${ago(s.ts)}</span>
+        <span class="meta"><b style="color:var(--ink)">${outlets(s.signal)}</b> carry this story</span>
       </div>
-      <button class="x" data-act="release" aria-label="Release this planet">✕</button>
     </div>
     ${s.breaking ? `<span class="breaking">${breakingText(s)}</span>` : ""}
-    <h2>${esc(s.title)}</h2>
-    <p class="sum">${esc(s.summary || "No summary came over the wire. Open the source for the full story.")}</p>
+    <h3>${esc(s.title)}</h3>
+    <p class="sum">${esc(s.summary || "No summary came with this story. Open the source for the full article.")}</p>
     <div class="acts">
       ${s.url ? `<a class="btn primary" href="${esc(s.url)}" target="_blank" rel="noopener">Read at ${esc(s.source)} ↗</a>` : `<span class="nolink">Sample story · no link</span>`}
-      <button class="btn" data-act="keep" data-id="${esc(s.id)}">${kept ? "Saved ✓" : "Save"}</button>
-      <button class="btn ghost" data-act="release">Release</button>
+      <button class="btn" type="button" data-act="keep" data-id="${esc(s.id)}">${kept ? "Saved ✓" : "Save"}</button>
+      <button class="btn quiet" type="button" data-act="close">Close story</button>
     </div>
     ${coverage(s)}`;
-  hold.hidden = false;
-  drawMini(look(s));
 }
-function openSaved(){
-  stopFlyby(); sendBack();
-  hold.dataset.mode = "saved";
+function renderSaved(){
   const items = S.clips.map(c => find(c.id) || c);
-  hold.innerHTML = `
-    <div class="hold-top" style="align-items:center"><div class="hold-meta" style="padding-top:0"><h3>Saved</h3><span class="when">${items.length} stor${items.length === 1 ? "y" : "ies"} · kept in this browser</span></div>
-    <button class="x" data-act="close" aria-label="Close saved stories">✕</button></div>
-    ${items.length ? `<div class="acts"><button class="btn small" data-act="copy">Copy as list</button><button class="btn small ghost" data-act="clear">${S.confirmClear ? "Press again to remove all" : "Remove all"}</button></div>
+  return `
+    <div class="side-head"><h2>Saved</h2><button class="btn small quiet" type="button" data-act="close">Close</button></div>
+    <span class="meta">${items.length} ${items.length === 1 ? "story" : "stories"} · kept in this browser</span>
+    ${items.length ? `<div class="acts"><button class="btn small" type="button" data-act="copy">Copy as a list</button><button class="btn small quiet" type="button" data-act="clear">${S.confirmClear ? "Press again to remove all" : "Remove all"}</button></div>
     <ul class="saved-list">${items.map(s => `<li style="--c:${CAT[s.cat].c}"><i class="dot"></i><div class="body">
-      <button class="linkish" data-act="opensaved" data-id="${esc(s.id)}">${esc(s.title)}</button>
-      <span class="when">${CAT[s.cat].name} · ${esc(s.source)} · ${ago(s.ts)}</span></div>
-      <button class="btn small ghost" data-act="keep" data-id="${esc(s.id)}" aria-label="Remove from saved">Remove</button></li>`).join("")}</ul>`
-    : `<p class="sum">Nothing saved yet. Pull in a planet and press <b>Save</b> to keep it here.</p>`}`;
-  hold.hidden = false;
+      <button class="linkish" type="button" data-story="${esc(s.id)}">${esc(s.title)}</button>
+      <span class="meta">${CAT[s.cat].name} · ${esc(s.source)} · ${ago(s.ts)}</span></div>
+      <button class="btn small quiet" type="button" data-act="keep" data-id="${esc(s.id)}" aria-label="Remove from saved">Remove</button></li>`).join("")}</ul>`
+    : `<p class="empty">Nothing saved yet. Open a story and press <b>Save</b> to keep it here.</p>`}`;
+}
+function renderSide(){
+  const s = S.selId ? find(S.selId) : null;
+  if (S.view === "story" && !s){ S.view = "top"; S.selId = null; }
+  sideIn.innerHTML = S.view === "story" ? renderStory(s, S.storyOpts || {}) : S.view === "saved" ? renderSaved() : S.view === "briefing" ? renderBriefingShell() : renderTop();
+  side.classList.toggle("open", S.view !== "top");
+  if (S.view === "story") drawMini(look(s));
 }
 function toggleKeep(id){
   const s = find(id); if (!s) return;
   if (isKept(id)){ S.clips = S.clips.filter(c => c.id !== id); toast("Removed from saved"); }
   else { S.clips.unshift({ id:s.id, title:s.title, summary:s.summary, url:s.url, source:s.source, sources:s.sources, items:s.items, signal:s.signal, cat:s.cat, region:s.region, place:s.place, ts:s.ts }); toast("Saved"); }
-  persist(); renderHud(); renderChart();
-  if (hold.dataset.mode === "saved") openSaved();
-  else if (hold.dataset.mode === "story"){ const b = hold.querySelector('[data-act="keep"]'); if (b) b.textContent = isKept(id) ? "Saved ✓" : "Save"; }
+  persist(); renderHeader(); renderFeed();
+  if (S.view === "saved") renderSide();
+  else if (S.view === "story"){ const b = sideIn.querySelector('[data-act="keep"]'); if (b) b.textContent = isKept(id) ? "Saved ✓" : "Save"; }
 }
 async function copySaved(){
   const text = S.clips.map(c => `• [${CAT[c.cat].name}] ${c.title}${c.url ? "\n  " + c.url : ""}`).join("\n");
   try { await navigator.clipboard.writeText(text); toast(`Copied ${S.clips.length} stories`); }
   catch(e){ toast("Copying is blocked here. Select the titles to copy them."); }
 }
-hold.addEventListener("click", e => {
-  const b = e.target.closest("[data-act]"); if (!b) return;
-  const a = b.dataset.act;
-  if (a === "release"){ stopFlyby(); release(); }
-  else if (a === "close") release();
-  else if (a === "keep") toggleKeep(b.dataset.id);
-  else if (a === "copy") copySaved();
-  else if (a === "clear"){ if (S.confirmClear){ S.clips = []; S.confirmClear = false; persist(); renderHud(); renderChart(); } else S.confirmClear = true; openSaved(); }
-  else if (a === "opensaved"){ const s = find(b.dataset.id); if (s) grabStory(s); }
-});
 
-/* ---------- 60-second flyby ---------- */
+/* ---------- 60-second briefing ---------- */
 const F = { on:false, picks:[], t0:0, paused:false, pausedAt:0, idx:-1, done:false };
 const flyhud = $("flyhud");
 function startFlyby(){
-  F.picks = briefPicks(7); if (!F.picks.length){ toast("No stories in this part of the world."); return; }
+  F.picks = briefPicks(7); if (!F.picks.length){ toast("No stories match this filter."); return; }
   Object.assign(F, { on:true, t0:performance.now(), paused:false, idx:-1, done:false });
   $("fdots").innerHTML = F.picks.map(s => `<i style="--c:${CAT[s.cat].c}"></i>`).join("");
   flyhud.hidden = false; $("anchorBtn").hidden = !sampleFn; tickFly();
@@ -823,7 +825,7 @@ function tickFly(){
   if (!F.on) return;
   const n = F.picks.length, el = Math.min(60, ((F.paused ? F.pausedAt : performance.now()) - F.t0) / 1000);
   const idx = Math.min(n - 1, Math.floor(el / (60 / n)));
-  if (idx !== F.idx){ F.idx = idx; grabStory(F.picks[idx], { flyby:`${idx + 1}/${n}` }); }
+  if (idx !== F.idx){ F.idx = idx; select(F.picks[idx], { flyby:`${idx + 1} of ${n}` }); }
   $("fcount").textContent = Math.ceil(60 - el) + "s";
   [...$("fdots").children].forEach((d, i) => { d.className = i < idx || el >= 60 ? "done" : i === idx ? "now" : ""; });
   if (el >= 60) F.done = true;
@@ -832,152 +834,160 @@ function tickFly(){
 setInterval(tickFly, 200);
 flyhud.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
-  if (b.dataset.act === "fstop"){ stopFlyby(); release(); }
+  if (b.dataset.act === "fstop"){ stopFlyby(); closePanel(); }
   else if (b.dataset.act === "fpause"){
     if (F.done){ startFlyby(); return; }
     if (F.paused){ F.t0 += performance.now() - F.pausedAt; F.paused = false; } else { F.pausedAt = performance.now(); F.paused = true; }
     tickFly();
   }
-  else if (b.dataset.act === "anchor") anchorRead();
+  else if (b.dataset.act === "anchor") summarize();
 });
 
-/* ---------- optional: Claude as mission control (only inside claude.ai) ---------- */
-let sampleFn = null, anchorBusy = false;
+/* ---------- optional: Claude summarizes the briefing (inside claude.ai only) ---------- */
+let sampleFn = null, summaryBusy = false, summaryText = "";
 if (window.claude && typeof window.claude.use === "function"){
   window.claude.use("sample").then(s => { sampleFn = s || null; if (F.on) $("anchorBtn").hidden = !sampleFn; }).catch(() => {});
 }
-async function anchorRead(){
-  if (!sampleFn || anchorBusy) return;
-  anchorBusy = true;
+function renderBriefingShell(){
+  return `<div class="side-head"><h2>Your 60-second summary</h2><button class="btn small quiet" type="button" data-act="close">Close</button></div>
+    <p class="transmission" id="tx">${esc(summaryText || "Writing the summary…")}</p>`;
+}
+async function summarize(){
+  if (!sampleFn || summaryBusy) return;
+  summaryBusy = true; summaryText = "";
   if (!F.paused){ F.pausedAt = performance.now(); F.paused = true; }
-  tickFly(); sendBack();
-  hold.dataset.mode = "briefing";
-  hold.innerHTML = `<div class="hold-top" style="align-items:center"><div class="hold-meta" style="padding-top:0"><span class="eyebrow" style="--c:var(--beam)">Mission control</span><h3>Your 60-second briefing</h3></div>
-    <button class="x" data-act="close" aria-label="Close briefing">✕</button></div><p class="transmission" id="tx">Receiving transmission…</p>`;
-  hold.hidden = false;
-  const items = briefPicks().map(s => ({ desk:CAT[s.cat].name, where:where(s), headline:s.title, summary:s.summary, outlets:s.signal, breaking:s.breaking }));
-  const prompt = `You are mission control for GLOBEWIRE, a news app where stories are planets around Earth.
-Write a spoken briefing that takes about 60 seconds to read aloud (130 to 150 words).
+  tickFly(); S.selId = null; S.view = "briefing"; renderSide(); requestDraw();
+  const items = briefPicks().map(s => ({ topic:CAT[s.cat].name, where:where(s), headline:s.title, summary:s.summary, outlets:s.signal, breaking:s.breaking }));
+  const prompt = `Write a spoken news summary for GLOBEWIRE that takes about 60 seconds to read aloud (130 to 150 words).
 Use ONLY the stories below. Do not add facts, names, numbers or context that are not in them.
-Plain text, no markdown, short sentences, one short paragraph per desk, in the order given. Mention breaking stories first. A light space-flight tone is fine; keep the news itself plain.
-${S.mode === "demo" ? "These are SAMPLE stories for a demo. Open by saying this is a demo briefing with sample stories.\n" : ""}
+Plain text, no markdown, short sentences, one short paragraph per topic, in the order given. Mention breaking stories first.
+${S.mode === "demo" ? "These are SAMPLE stories for a demo. Open by saying this is a demo summary with sample stories.\n" : ""}
 Stories (JSON):
 ${JSON.stringify(items, null, 1)}`;
   try {
-    const out = await sampleFn(prompt, { modelTier:"quick", onText:({ text }) => { const t = $("tx"); if (t) t.textContent = text; } });
-    const t = $("tx"); if (t) t.textContent = out.text;
+    const out = await sampleFn(prompt, { modelTier:"quick", onText:({ text }) => { summaryText = text; const t = $("tx"); if (t) t.textContent = text; } });
+    summaryText = out.text;
   } catch (e){
-    const t = $("tx");
-    if (e && e.code === "not_granted"){ sampleFn = null; $("anchorBtn").hidden = true; if (t) t.textContent = "Mission control isn't available on this page."; }
-    else if (t) t.textContent = e && e.code === "rate_limited" ? "Mission control needs a minute. Try again shortly." : "The transmission dropped. Try again.";
+    if (e && e.code === "not_granted"){ sampleFn = null; $("anchorBtn").hidden = true; summaryText = "Summaries aren't available on this page."; }
+    else summaryText = e && e.code === "rate_limited" ? "Too many requests just now. Try again in a minute." : "The summary didn't come through. Try again.";
   }
-  anchorBusy = false;
+  const t = $("tx"); if (t) t.textContent = summaryText;
+  summaryBusy = false;
 }
 
-/* ---------- HUD & star chart ---------- */
-function renderStatus(){
-  const st = $("status");
-  if (S.mode === "demo"){ st.innerHTML = `<span class="warn">Demo sky · sample stories, not real news</span><span>Load a tape or open the live site for real news</span>`; return; }
-  const src = S.data.sources || [], ok = src.filter(x => x.ok).length;
-  const age = Date.now() - +S.generated, stale = S.mode === "live" && age > 45 * 60e3;
-  st.innerHTML = `${stale ? `<span class="warn">Last update ${ago(+S.generated)}</span>` : `<span class="live">● ${S.mode === "live" ? "Live" : "Tape"}</span><span>Updated ${ago(+S.generated)}</span>`}
-    ${src.length ? `<span>${ok}/${src.length} feeds</span>` : ""}<span>${S.data.stories.length} stories</span>`;
-}
-function renderHud(){
-  renderStatus();
+/* ---------- header, topic bar, headlines ---------- */
+function renderHeader(){
+  const fr = $("fresh");
+  if (S.mode === "demo") fr.textContent = "Showing sample stories";
+  else {
+    const age = Date.now() - +S.generated, stale = S.mode === "live" && age > 45 * 60e3;
+    const src = S.data.sources || [], ok = src.filter(x => x.ok).length;
+    const when = S.mode === "live" ? `Headlines updated ${ago(+S.generated)}` : `News file from ${ago(+S.generated)}`;
+    fr.innerHTML = `${stale ? `<span class="warn">${when}</span>` : when}${src.length ? ` · ${ok} of ${src.length} sources` : ""}`;
+  }
   $("scount").textContent = S.clips.length ? "· " + S.clips.length : "";
   const chip = $("regionChip");
-  chip.hidden = S.region === "ALL"; chip.textContent = S.region === "ALL" ? "" : `${REGION_NAME[S.region]} only · show all ✕`;
-  const all = stories();
-  $("desks").innerHTML = CATS.map(c => `<span style="--c:${c.c}"><i></i>${c.name}<em>${all.filter(s => s.cat === c.k).length}</em></span>`).join("");
+  chip.hidden = S.region === "ALL"; chip.textContent = S.region === "ALL" ? "" : `Showing ${REGION_NAME[S.region]} · Show all regions ✕`;
 }
-function renderChart(){
-  const total = stories().length;
-  const words = CATS.reduce((n, c) => n + byCat(c.k).slice(0, 5).reduce((m, s) => m + s.title.split(/\s+/).length, 0), 0);
-  $("chartMeta").textContent = `${total} stories${S.region !== "ALL" ? " in " + REGION_NAME[S.region] : ""}, ranked by how many outlets carry them. The top headlines take about ${Math.max(10, Math.round(words / 4.2 / 5) * 5)} seconds to read.`;
-  $("chart").innerHTML = CATS.map(c => {
-    const list = byCat(c.k), show = S.expand[c.k] ? list : list.slice(0, 5);
-    return `<section class="col" style="--c:${c.c}"><h3><i class="dot"></i>${c.name}<span class="n">${list.length}</span></h3>
-      ${list.length ? `<ol>${show.map(s => `<li><button class="row" data-story="${esc(s.id)}"><span class="t">${esc(s.title)}</span>
-        <span class="m">${sigDots(s.signal)}${s.breaking ? `<span class="hot">breaking</span>` : ""}<span>${esc(s.source)}</span><span>${esc(s.place || REGION_NAME[s.region])}</span><span>${ago(s.ts)}</span>${isKept(s.id) ? `<span class="kept">saved</span>` : ""}</span></button></li>`).join("")}</ol>`
-        : `<p class="empty">Nothing on this desk${S.region !== "ALL" ? " for " + REGION_NAME[S.region] : ""}.</p>`}
-      ${list.length > 5 ? `<button class="more-btn" data-expand="${c.k}">${S.expand[c.k] ? "Show fewer" : "Show all " + list.length}</button>` : ""}
-    </section>`;
-  }).join("");
+function deskButtons(){
+  const pool = (S.data ? S.data.stories : []).filter(inRegion);
+  return [{ k:"all", name:"All topics", c:"var(--beam)" }, ...CATS].map(c =>
+    `<button type="button" class="desk" data-desk="${c.k}" aria-pressed="${S.desk === c.k}" style="--c:${c.c}"><i></i>${c.name}<em>${c.k === "all" ? pool.length : pool.filter(s => s.cat === c.k).length}</em></button>`).join("");
+}
+function renderFeed(){
+  const list = visible().sort(S.sort === "covered" ? (a, b) => b.signal - a.signal || b.ts - a.ts : (a, b) => b.ts - a.ts);
+  const shown = list.slice(0, S.showN);
+  $("tabs").innerHTML = deskButtons();
+  $("hlMeta").textContent = `${list.length} ${list.length === 1 ? "story" : "stories"}${S.region !== "ALL" ? " in " + REGION_NAME[S.region] : ""} · ${S.sort === "covered" ? "most outlets first" : "newest first"}`;
+  $("feed").innerHTML = shown.length ? shown.map(s => `
+    <button class="story" type="button" data-story="${esc(s.id)}" style="--c:${CAT[s.cat].c}" aria-current="${s.id === S.selId}">
+      <span class="row1"><span class="tag">${CAT[s.cat].name} · ${esc(where(s))}</span>${s.breaking ? `<span class="hot">Breaking</span>` : isKept(s.id) ? `<span class="saved-mark">Saved</span>` : ""}</span>
+      <span class="h">${esc(s.title)}</span>
+      <span class="meta">${metaLine(s)}</span>
+    </button>`).join("") : `<p class="empty">No stories match. <button class="btn small quiet" type="button" data-act="clearfilters">Show everything</button></p>`;
+  const more = $("moreBtn");
+  more.hidden = list.length <= S.showN; more.textContent = `Show ${Math.min(24, list.length - S.showN)} more`;
   $("foot").innerHTML = S.mode === "live"
-    ? "Stories come from about 30 RSS feeds and refresh every 15 minutes. Each outlet's own headline is in the reading panel."
-    : "Stories come from RSS feeds collected by globewire.py. Open the live site, or save a tape with <code>python3 globewire.py --export news.json</code> and load it here.";
+    ? "Headlines come from about 30 news feeds and refresh every 15 minutes. Stories that several outlets carry are merged into one."
+    : "These are sample stories. The live site shows real headlines from about 30 news feeds. To use your own, save a news file with <code>python3 globewire.py --export news.json</code> and load it here.";
+  document.querySelectorAll("[data-sort]").forEach(b => b.setAttribute("aria-pressed", b.dataset.sort === S.sort));
 }
-$("chart").addEventListener("click", e => {
-  const x = e.target.closest("[data-expand]");
-  if (x){ S.expand[x.dataset.expand] = !S.expand[x.dataset.expand]; renderChart(); return; }
-  const r = e.target.closest("[data-story]"); if (!r) return;
-  const s = find(r.dataset.story); if (s){ stopFlyby(); grabStory(s); }
+function renderAll(){ renderHeader(); $("deskbar").innerHTML = deskButtons(); renderSide(); renderFeed(); placeSectors(); requestDraw(); }
+function setDesk(k){ S.desk = k; S.showN = 24; stopFlyby(); if (S.selId && !inDesk(find(S.selId) || {})) closePanel(); renderAll(); }
+function setRegion(r){ S.region = r; S.showN = 24; stopFlyby(); if (S.selId && !inRegion(find(S.selId) || {})) closePanel(); renderAll(); }
+
+/* ---------- clicks ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-story],[data-act],[data-desk],[data-region],[data-sort],[data-mview]"); if (!t) return;
+  if (t.dataset.story){ const s = find(t.dataset.story); if (s){ stopFlyby(); select(s); if (!phone() && t.closest(".headlines")) $("stage").scrollIntoView({ behavior:reduce ? "auto" : "smooth", block:"center" }); } return; }
+  if (t.dataset.desk){ setDesk(t.dataset.desk); return; }
+  if (t.dataset.region){ setRegion(S.region === t.dataset.region ? "ALL" : t.dataset.region); return; }
+  if (t.dataset.sort){ S.sort = t.dataset.sort; renderFeed(); return; }
+  if (t.dataset.mview){ $("wrap").dataset.mode = t.dataset.mview; document.querySelectorAll("[data-mview]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mview === t.dataset.mview)); if (t.dataset.mview === "map") resize(); return; }
+  const a = t.dataset.act;
+  if (a === "close"){ stopFlyby(); closePanel(); }
+  else if (a === "keep") toggleKeep(t.dataset.id);
+  else if (a === "copy") copySaved();
+  else if (a === "clear"){ if (S.confirmClear){ S.clips = []; S.confirmClear = false; persist(); renderHeader(); renderFeed(); } else S.confirmClear = true; renderSide(); }
+  else if (a === "flyby") startFlyby();
+  else if (a === "clearfilters"){ S.desk = "all"; S.region = "ALL"; renderAll(); }
+  else if (a === "toheadlines"){ e.preventDefault(); if (phone()) document.querySelector('.mswitch [data-mview="list"]').click(); document.querySelector(".headlines").scrollIntoView({ behavior:reduce ? "auto" : "smooth" }); }
 });
-$("flyby").addEventListener("click", startFlyby);
-$("savedBtn").addEventListener("click", openSaved);
+$("savedBtn").addEventListener("click", () => { stopFlyby(); S.selId = null; S.view = "saved"; S.confirmClear = false; renderSide(); requestDraw(); });
+$("regionChip").addEventListener("click", () => setRegion("ALL"));
+$("moreBtn").addEventListener("click", () => { S.showN += 24; renderFeed(); });
+$("howBtn").addEventListener("click", e => { const how = $("how"); how.hidden = !how.hidden; e.currentTarget.setAttribute("aria-expanded", !how.hidden); e.currentTarget.textContent = how.hidden ? "How to read the map" : "Hide the guide"; });
 
 /* ---------- keyboard ---------- */
 document.addEventListener("keydown", e => {
   if (e.target.closest("input,select,textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
   const onBtn = e.target.closest("button,a");
-  if (e.key === "Escape"){ if (!hold.hidden){ stopFlyby(); release(); } return; }
-  // ← → step through planets eastward around the world
-  const pool = planets.map((p, i) => i).filter(i => planets[i].on && planets[i] !== G.p)
+  if (e.key === "Escape"){ if (S.view !== "top"){ stopFlyby(); closePanel(); } return; }
+  const pool = planets.map((p, i) => i).filter(i => planets[i].on)
     .sort((a, b) => ((planets[a].ang + Math.PI * 1.5) % (Math.PI * 2)) - ((planets[b].ang + Math.PI * 1.5) % (Math.PI * 2)));
   if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && pool.length && !onBtn){
     e.preventDefault();
     const at = pool.indexOf(kbd), n = at < 0 ? 0 : (at + (e.key === "ArrowRight" ? 1 : -1) + pool.length) % pool.length;
     kbd = pool[n]; hover = null; tipFor = null; requestDraw(); return;
   }
-  if (e.key === "Enter" && kbd >= 0 && !onBtn){ e.preventDefault(); stopFlyby(); grabPlanet(planets[kbd]); kbd = -1; }
+  if (e.key === "Enter" && kbd >= 0 && !onBtn){ e.preventDefault(); stopFlyby(); select(planets[kbd].s); kbd = -1; hideTip(); }
 });
 
-/* ---------- loading, live updates, tapes ---------- */
+/* ---------- loading, live updates, news files ---------- */
 function loadSky(j, mode){
-  stopFlyby(); hold.hidden = true; hold.dataset.mode = ""; G.phase = "none"; G.p = null; planets = [];
-  setData(j, mode); layout(); renderHud(); renderChart(); requestDraw();
+  stopFlyby(); S.selId = null; S.view = "top"; planets = [];
+  setData(j, mode); layout(); renderAll();
 }
 function applyUpdate(j){
   const before = new Set(S.data.stories.map(s => s.id));
   setData(j, "live"); layout();
   const now = performance.now(); let fresh = 0;
   for (const p of planets) if (!before.has(p.s.id)){ p.born = now + Math.random() * 600; fresh++; }
-  renderHud(); renderChart(); requestDraw(); loop();
-  toast(fresh ? `${fresh} new stor${fresh === 1 ? "y" : "ies"} arrived` : "Sky updated");
+  renderAll(); loop();
+  toast(fresh ? `${fresh} new ${fresh === 1 ? "story" : "stories"} arrived` : "Headlines updated");
 }
-async function poll(manual){
+async function poll(){
   try {
-    const r = await fetch("news.json" + (manual ? "?refresh=1&t=" + Date.now() : "?t=" + Date.now()), { cache:"no-store" });
+    const r = await fetch("news.json?t=" + Date.now(), { cache:"no-store" });
     const j = await r.json();
-    if (!valid(j)) throw new Error("empty");
-    if (j.generated === S.data.generated){ if (manual) toast("Already up to date"); return; }
-    if (!hold.hidden && hold.dataset.mode === "story"){ S.pending = j; if (manual) toast("Update ready. It lands when you release this story."); return; }
+    if (!valid(j) || j.generated === S.data.generated) return;
+    if (S.view === "story"){ S.pending = j; toast("New headlines are ready. They'll appear when you close this story."); return; }
     applyUpdate(j);
-  } catch(e){ if (manual) toast("Couldn't reach the news feed. Try again in a minute."); }
+  } catch(e){}
 }
-$("refresh").addEventListener("click", () => poll(true));
 const tapeFile = $("tapeFile");
 $("loadTape").addEventListener("click", () => tapeFile.click());
 tapeFile.addEventListener("change", async () => {
   const f = tapeFile.files[0]; if (!f) return;
   try {
     const j = JSON.parse(await f.text()); if (!valid(j)) throw new Error("no stories");
-    loadSky(j, "tape"); toast(`Tape loaded · ${S.data.stories.length} stories`);
-  } catch(e){ toast("That file isn't a GLOBEWIRE tape. Make one with: python3 globewire.py --export news.json"); }
+    loadSky(j, "tape"); toast(`Loaded ${S.data.stories.length} stories`);
+  } catch(e){ toast("That file isn't a GLOBEWIRE news file. Make one with: python3 globewire.py --export news.json"); }
   tapeFile.value = "";
 });
 
-/* ---------- clock ---------- */
-function tickClock(){
-  const d = new Date();
-  $("clock").textContent = d.toLocaleDateString("en-GB", { day:"2-digit", month:"short", timeZone:"UTC" }).toUpperCase() + " · " +
-    d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit", timeZone:"UTC" }) + " UTC";
-}
-setInterval(tickClock, 15e3); tickClock();
-
 // TREMOR sits next to GLOBEWIRE on the live site; anywhere else, point at the live copy
-if (!/\.github\.io$/.test(location.hostname)) $("tremorLink").href = "https://dbajh2005.github.io/globewire/tremor/";
+if (!/\.github\.io$/.test(location.hostname)){ $("tremorLink").href = LIVE_URL + "tremor/"; $("tremorLink").target = "_blank"; }
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -986,9 +996,9 @@ async function boot(){
   try { const r = await fetch("news.json?t=" + Date.now(), { cache:"no-store" }); if (r.ok){ const j = await r.json(); if (valid(j)) live = j; } } catch(e){}
   loadSky(live || demoData(), live ? "live" : "demo");
   loop();
-  setInterval(() => { if (S.data) { renderStatus(); } }, 30e3);
-  setInterval(() => { if (S.data && hold.hidden) { layout(); requestDraw(); } }, 3 * 60e3); // planets drift outward as they age
-  if (live) setInterval(() => poll(false), 5 * 60e3);
+  setInterval(() => { if (S.data) renderHeader(); }, 30e3);
+  setInterval(() => { if (S.data && S.view === "top"){ layout(); requestDraw(); } }, 3 * 60e3); // stories drift outward as they age
+  if (live) setInterval(poll, 5 * 60e3);
 }
 boot();
 })();
