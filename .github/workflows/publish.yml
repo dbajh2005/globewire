@@ -4,9 +4,11 @@
 name: Publish news sky
 
 on:
+  # An outside timer (cron-job.org) starts this every 15 minutes through GitHub's API; see the README.
+  # GitHub's own schedule is a backup: hourly, at a quiet minute, in case the timer ever stops.
   schedule:
-    - cron: "*/15 * * * *"   # GitHub may start scheduled runs a few minutes late
-  workflow_dispatch:          # lets you run it by hand from the Actions tab
+    - cron: "37 * * * *"
+  workflow_dispatch:          # used by the outside timer, and by "Run workflow" on the Actions tab
   push:
     branches: [main]
 

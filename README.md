@@ -32,10 +32,24 @@ The site appears at `https://<your-username>.github.io/globewire/`.
 
 Notes:
 
-- GitHub sometimes starts scheduled runs a few minutes late.
+- GitHub treats schedules as best-effort and often runs them late, so the 15-minute updates come from an outside timer (below). GitHub's own schedule runs hourly as a backup.
 - GitHub pauses scheduled workflows in a repository with no commits for 60 days. The keep-alive below prevents that; if it ever happens anyway, use **Enable workflow** on the Actions tab.
 - If every feed fails, the run stops and the last good version stays up.
 - `.github/workflows/keepalive.yml` makes a one-line heartbeat commit once a month if nothing else was committed in the last 25 days, so GitHub never pauses the schedule.
+
+### Reliable 15-minute updates with an outside timer
+
+A free scheduler such as [cron-job.org](https://cron-job.org) calls GitHub's API every 15 minutes to start **Publish news sky**.
+
+1. On GitHub, go to **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Limit it to this repository and give it **Actions: Read and write** and nothing else.
+2. On cron-job.org, create a job that sends `POST` to `https://api.github.com/repos/<owner>/globewire/actions/workflows/publish.yml/dispatches` every 15 minutes, with the body `{"ref":"main"}` and these headers:
+   - `Authorization: Bearer <your token>`
+   - `Accept: application/vnd.github+json`
+   - `X-GitHub-Api-Version: 2022-11-28`
+   - `Content-Type: application/json`
+3. A test run should return status `204`, and a new run appears on the Actions tab.
+
+The token can only start and manage workflow runs in this one repository. When it expires, create a new one and paste it into the job.
 
 ## Run it on your own computer
 
