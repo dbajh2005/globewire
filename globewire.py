@@ -110,53 +110,185 @@ STRONG_WORDS = {
 # case-sensitively against the original text ("US" the country, not "us" the word);
 # an underscore joins a multi-word phrase.
 PLACES = [
-    ("United States", "AMERICAS", -98, "=US =U.S. america american americans united_states washington white_house wall_street =Fed new_york california texas florida pentagon democrat democrats republican republicans =GOP trump biden capitol_hill"),
-    ("Canada", "AMERICAS", -106, "canada canadian ottawa toronto"),
-    ("Mexico", "AMERICAS", -102, "mexico mexican"),
-    ("Caribbean", "AMERICAS", -75, "cuba cuban haiti haitian jamaica caribbean"),
-    ("Colombia", "AMERICAS", -74, "colombia colombian"),
-    ("Venezuela", "AMERICAS", -66, "venezuela venezuelan"),
-    ("Peru", "AMERICAS", -75, "peru peruvian ecuador"),
-    ("Brazil", "AMERICAS", -51, "brazil brazilian"),
-    ("Argentina", "AMERICAS", -64, "argentina argentine chile chilean bolivia"),
-    ("United Kingdom", "EUROPE", -2, "=UK britain british england scotland wales london downing westminster bank_of_england north_sea"),
+    # Americas
+    ("United States", "AMERICAS", -98, "=US =U.S. =USA america american americans united_states washington white_house wall_street =Fed new_york california texas florida pentagon democrat democrats republican republicans =GOP trump biden capitol_hill thanksgiving"),
+    ("Canada", "AMERICAS", -106, "canada canadian canadians ottawa toronto quebec"),
+    ("Greenland", "AMERICAS", -42, "greenland"),
+    ("Mexico", "AMERICAS", -102, "mexico mexican mexicans"),
+    ("Guatemala", "AMERICAS", -90, "guatemala guatemalan"),
+    ("Honduras", "AMERICAS", -87, "honduras honduran"),
+    ("El Salvador", "AMERICAS", -89, "el_salvador salvadoran"),
+    ("Nicaragua", "AMERICAS", -85, "nicaragua nicaraguan"),
+    ("Costa Rica", "AMERICAS", -84, "costa_rica"),
+    ("Panama", "AMERICAS", -80, "panama panamanian"),
+    ("Cuba", "AMERICAS", -79, "cuba cuban havana"),
+    ("Haiti", "AMERICAS", -72, "haiti haitian"),
+    ("Dominican Republic", "AMERICAS", -70, "dominican_republic"),
+    ("Jamaica", "AMERICAS", -77, "jamaica jamaican"),
+    ("Puerto Rico", "AMERICAS", -66, "puerto_rico"),
+    ("Bahamas", "AMERICAS", -77, "bahamas bahamian"),
+    ("Barbados", "AMERICAS", -59, "barbados"),
+    ("Trinidad and Tobago", "AMERICAS", -61, "trinidad"),
+    ("Belize", "AMERICAS", -88, "belize"),
+    ("Guyana", "AMERICAS", -59, "guyana guyanese"),
+    ("Suriname", "AMERICAS", -56, "suriname"),
+    ("Colombia", "AMERICAS", -74, "colombia colombian bogota"),
+    ("Venezuela", "AMERICAS", -66, "venezuela venezuelan caracas maduro"),
+    ("Ecuador", "AMERICAS", -78, "ecuador ecuadorian"),
+    ("Peru", "AMERICAS", -75, "peru peruvian lima"),
+    ("Bolivia", "AMERICAS", -64, "bolivia bolivian"),
+    ("Brazil", "AMERICAS", -51, "brazil brazilian brasilia lula"),
+    ("Paraguay", "AMERICAS", -58, "paraguay"),
+    ("Uruguay", "AMERICAS", -56, "uruguay"),
+    ("Argentina", "AMERICAS", -64, "argentina argentine buenos_aires milei"),
+    ("Chile", "AMERICAS", -71, "chile chilean santiago"),
+    # Europe
+    ("United Kingdom", "EUROPE", -2, "=UK britain british england english scotland scottish wales welsh northern_ireland london downing westminster bank_of_england north_sea shetland starmer"),
     ("Ireland", "EUROPE", -8, "ireland irish dublin"),
-    ("Spain", "EUROPE", -4, "spain spanish madrid portugal"),
+    ("Iceland", "EUROPE", -19, "iceland icelandic"),
+    ("Portugal", "EUROPE", -8, "portugal portuguese lisbon"),
+    ("Spain", "EUROPE", -4, "spain spanish madrid barcelona catalonia"),
     ("France", "EUROPE", 2, "france french paris macron"),
-    ("EU", "EUROPE", 4, "=EU european brussels =ECB =NATO nato netherlands dutch belgium"),
-    ("Germany", "EUROPE", 10, "germany german berlin austria"),
-    ("Italy", "EUROPE", 12, "italy italian rome"),
-    ("Nordics", "EUROPE", 15, "sweden swedish norway denmark finland"),
-    ("Poland", "EUROPE", 19, "poland polish hungary"),
-    ("Greece", "EUROPE", 22, "greece greek romania balkans serbia"),
-    ("Ukraine", "EUROPE", 31, "ukraine ukrainian kyiv zelensky"),
-    ("Russia", "EUROPE", 37, "russia russian kremlin moscow putin"),
-    ("West Africa", "AFRICA", -5, "nigeria nigerian ghana senegal mali sahel"),
-    ("North Africa", "AFRICA", 5, "morocco algeria tunisia libya"),
-    ("Africa", "AFRICA", 20, "africa african"),
-    ("Central Africa", "AFRICA", 23, "congo cameroon chad"),
-    ("Egypt", "AFRICA", 31, "egypt egyptian cairo"),
-    ("Sudan", "AFRICA", 30, "sudan sudanese"),
-    ("East Africa", "AFRICA", 38, "kenya ethiopia uganda tanzania rwanda somalia"),
-    ("Southern Africa", "AFRICA", 26, "zimbabwe mozambique south_africa"),
-    ("Turkey", "MIDEAST", 35, "turkey turkish ankara erdogan"),
-    ("Israel", "MIDEAST", 35, "israel israeli netanyahu"),
+    ("Belgium", "EUROPE", 4, "belgium belgian"),
+    ("Netherlands", "EUROPE", 5, "netherlands dutch amsterdam the_hague"),
+    ("Luxembourg", "EUROPE", 6, "luxembourg"),
+    ("Switzerland", "EUROPE", 8, "switzerland swiss geneva zurich"),
+    ("Germany", "EUROPE", 10, "germany german berlin bundestag"),
+    ("Denmark", "EUROPE", 10, "denmark danish copenhagen"),
+    ("Norway", "EUROPE", 10, "norway norwegian oslo"),
+    ("Italy", "EUROPE", 12, "italy italian rome milan meloni"),
+    ("Austria", "EUROPE", 14, "austria austrian vienna"),
+    ("Malta", "EUROPE", 14, "malta maltese"),
+    ("Czech Republic", "EUROPE", 15, "czech czechia prague"),
+    ("Sweden", "EUROPE", 15, "sweden swedish stockholm"),
+    ("Slovenia", "EUROPE", 15, "slovenia slovenian"),
+    ("Croatia", "EUROPE", 16, "croatia croatian"),
+    ("Bosnia", "EUROPE", 18, "bosnia bosnian sarajevo"),
+    ("Slovakia", "EUROPE", 19, "slovakia slovak"),
+    ("Hungary", "EUROPE", 19, "hungary hungarian budapest orban"),
+    ("Poland", "EUROPE", 19, "poland polish warsaw"),
+    ("Montenegro", "EUROPE", 19, "montenegro"),
+    ("Albania", "EUROPE", 20, "albania albanian"),
+    ("Serbia", "EUROPE", 21, "serbia serbian belgrade"),
+    ("Kosovo", "EUROPE", 21, "kosovo"),
+    ("North Macedonia", "EUROPE", 22, "north_macedonia macedonian"),
+    ("Greece", "EUROPE", 22, "greece greek athens"),
+    ("Bulgaria", "EUROPE", 25, "bulgaria bulgarian"),
+    ("Romania", "EUROPE", 25, "romania romanian bucharest"),
+    ("Finland", "EUROPE", 26, "finland finnish helsinki"),
+    ("Estonia", "EUROPE", 25, "estonia estonian"),
+    ("Latvia", "EUROPE", 25, "latvia latvian"),
+    ("Lithuania", "EUROPE", 24, "lithuania lithuanian"),
+    ("Moldova", "EUROPE", 29, "moldova moldovan"),
+    ("Belarus", "EUROPE", 28, "belarus belarusian minsk lukashenko"),
+    ("Ukraine", "EUROPE", 31, "ukraine ukrainian ukrainians kyiv zelensky"),
+    ("Russia", "EUROPE", 37, "russia russian russians kremlin moscow putin"),
+    ("Cyprus", "EUROPE", 33, "cyprus cypriot"),
+    ("Armenia", "EUROPE", 45, "armenia armenian yerevan"),
+    ("Azerbaijan", "EUROPE", 48, "azerbaijan azerbaijani azeri baku"),
+    ("Monaco", "EUROPE", 7, "monaco"),
+    ("Vatican", "EUROPE", 12, "vatican holy_see"),
+    ("EU", "EUROPE", 4, "=EU european_union european_commission brussels =ECB =NATO nato"),
+    # Middle East
+    ("Turkey", "MIDEAST", 35, "turkey turkish ankara istanbul erdogan"),
+    ("Israel", "MIDEAST", 35, "israel israeli israelis netanyahu jerusalem tel_aviv"),
     ("Gaza", "MIDEAST", 34, "gaza palestinian palestinians hamas west_bank"),
-    ("Lebanon", "MIDEAST", 36, "lebanon lebanese hezbollah jordan syria syrian"),
+    ("Lebanon", "MIDEAST", 36, "lebanon lebanese hezbollah beirut"),
+    ("Syria", "MIDEAST", 38, "syria syrian damascus"),
+    ("Jordan", "MIDEAST", 36, "jordanian amman"),
     ("Iraq", "MIDEAST", 44, "iraq iraqi baghdad"),
-    ("Gulf", "MIDEAST", 47, "saudi qatar =UAE dubai yemen houthi houthis"),
-    ("Iran", "MIDEAST", 53, "iran iranian tehran"),
-    ("Afghanistan", "ASIA-PAC", 67, "afghanistan afghan taliban"),
-    ("Pakistan", "ASIA-PAC", 69, "pakistan pakistani"),
-    ("India", "ASIA-PAC", 79, "india indian delhi modi bangladesh nepal sri_lanka"),
-    ("Southeast Asia", "ASIA-PAC", 103, "myanmar thailand vietnam malaysia singapore indonesia cambodia"),
-    ("China", "ASIA-PAC", 104, "china chinese beijing xi hong_kong"),
-    ("Taiwan", "ASIA-PAC", 121, "taiwan taiwanese"),
+    ("Iran", "MIDEAST", 53, "iran iranian tehran khamenei"),
+    ("Saudi Arabia", "MIDEAST", 45, "saudi saudis riyadh"),
+    ("Yemen", "MIDEAST", 48, "yemen yemeni houthi houthis"),
+    ("UAE", "MIDEAST", 54, "=UAE emirates emirati dubai abu_dhabi"),
+    ("Qatar", "MIDEAST", 51, "qatar qatari doha"),
+    ("Kuwait", "MIDEAST", 48, "kuwait kuwaiti"),
+    ("Bahrain", "MIDEAST", 50, "bahrain"),
+    ("Oman", "MIDEAST", 57, "oman omani"),
+    # Africa
+    ("Morocco", "AFRICA", -7, "morocco moroccan rabat"),
+    ("Algeria", "AFRICA", 3, "algeria algerian"),
+    ("Tunisia", "AFRICA", 9, "tunisia tunisian"),
+    ("Libya", "AFRICA", 17, "libya libyan tripoli"),
+    ("Egypt", "AFRICA", 31, "egypt egyptian cairo"),
+    ("Sudan", "AFRICA", 30, "sudan sudanese khartoum darfur"),
+    ("South Sudan", "AFRICA", 31, "south_sudan"),
+    ("Ethiopia", "AFRICA", 39, "ethiopia ethiopian addis_ababa tigray"),
+    ("Eritrea", "AFRICA", 39, "eritrea eritrean"),
+    ("Somalia", "AFRICA", 46, "somalia somali mogadishu"),
+    ("Kenya", "AFRICA", 38, "kenya kenyan nairobi"),
+    ("Uganda", "AFRICA", 32, "uganda ugandan kampala"),
+    ("Tanzania", "AFRICA", 35, "tanzania tanzanian"),
+    ("Rwanda", "AFRICA", 30, "rwanda rwandan kigali"),
+    ("Burundi", "AFRICA", 30, "burundi"),
+    ("DR Congo", "AFRICA", 23, "congo congolese kinshasa goma"),
+    ("Nigeria", "AFRICA", 8, "nigeria nigerian lagos abuja"),
+    ("Ghana", "AFRICA", -1, "ghana ghanaian accra"),
+    ("Senegal", "AFRICA", -14, "senegal senegalese dakar"),
+    ("Mali", "AFRICA", -4, "mali malian bamako"),
+    ("Burkina Faso", "AFRICA", -2, "burkina_faso"),
+    ("Niger", "AFRICA", 8, "niger niamey"),
+    ("Chad", "AFRICA", 18, "chadian n'djamena"),
+    ("Cameroon", "AFRICA", 12, "cameroon cameroonian"),
+    ("Ivory Coast", "AFRICA", -5, "ivory_coast ivorian"),
+    ("Sierra Leone", "AFRICA", -12, "sierra_leone"),
+    ("Liberia", "AFRICA", -9, "liberia liberian"),
+    ("Mauritania", "AFRICA", -10, "mauritania mauritanian"),
+    ("Gambia", "AFRICA", -15, "gambia gambian"),
+    ("Benin", "AFRICA", 2, "benin"),
+    ("Togo", "AFRICA", 1, "togo togolese"),
+    ("Gabon", "AFRICA", 11, "gabon gabonese"),
+    ("Central African Republic", "AFRICA", 21, "central_african_republic"),
+    ("Djibouti", "AFRICA", 43, "djibouti"),
+    ("Lesotho", "AFRICA", 28, "lesotho"),
+    ("Eswatini", "AFRICA", 31, "eswatini swaziland"),
+    ("Mauritius", "AFRICA", 57, "mauritius"),
+    ("Angola", "AFRICA", 18, "angola angolan"),
+    ("Zambia", "AFRICA", 28, "zambia zambian"),
+    ("Zimbabwe", "AFRICA", 30, "zimbabwe zimbabwean harare"),
+    ("Mozambique", "AFRICA", 35, "mozambique mozambican"),
+    ("Malawi", "AFRICA", 34, "malawi malawian"),
+    ("Madagascar", "AFRICA", 47, "madagascar"),
+    ("Namibia", "AFRICA", 18, "namibia namibian"),
+    ("Botswana", "AFRICA", 24, "botswana"),
+    ("South Africa", "AFRICA", 25, "south_africa south_african johannesburg pretoria cape_town"),
+    ("Africa", "AFRICA", 20, "africa african sahel"),
+    # Asia-Pacific
+    ("Kazakhstan", "ASIA-PAC", 67, "kazakhstan"),
+    ("Uzbekistan", "ASIA-PAC", 64, "uzbekistan"),
+    ("Kyrgyzstan", "ASIA-PAC", 75, "kyrgyzstan kyrgyz"),
+    ("Tajikistan", "ASIA-PAC", 71, "tajikistan tajik"),
+    ("Turkmenistan", "ASIA-PAC", 59, "turkmenistan"),
+    ("Afghanistan", "ASIA-PAC", 67, "afghanistan afghan afghans kabul taliban"),
+    ("Pakistan", "ASIA-PAC", 69, "pakistan pakistani islamabad karachi lahore"),
+    ("India", "ASIA-PAC", 79, "india indian indians delhi mumbai modi"),
+    ("Sri Lanka", "ASIA-PAC", 81, "sri_lanka sri_lankan colombo"),
+    ("Nepal", "ASIA-PAC", 84, "nepal nepali kathmandu"),
+    ("Bhutan", "ASIA-PAC", 90, "bhutan"),
+    ("Maldives", "ASIA-PAC", 73, "maldives"),
+    ("Bangladesh", "ASIA-PAC", 90, "bangladesh bangladeshi dhaka"),
+    ("Myanmar", "ASIA-PAC", 96, "myanmar burma burmese yangon"),
+    ("Thailand", "ASIA-PAC", 101, "thailand thai bangkok"),
+    ("Cambodia", "ASIA-PAC", 105, "cambodia cambodian phnom_penh"),
+    ("Laos", "ASIA-PAC", 103, "laos"),
+    ("Vietnam", "ASIA-PAC", 106, "vietnam vietnamese hanoi"),
+    ("Malaysia", "ASIA-PAC", 102, "malaysia malaysian kuala_lumpur"),
+    ("Singapore", "ASIA-PAC", 104, "singapore singaporean"),
+    ("Indonesia", "ASIA-PAC", 113, "indonesia indonesian jakarta bali"),
     ("Philippines", "ASIA-PAC", 122, "philippines filipino manila"),
-    ("Korea", "ASIA-PAC", 127, "korea korean seoul pyongyang"),
+    ("Brunei", "ASIA-PAC", 115, "brunei"),
+    ("East Timor", "ASIA-PAC", 126, "east_timor timor-leste"),
+    ("China", "ASIA-PAC", 104, "china chinese beijing shanghai xi_jinping"),
+    ("Hong Kong", "ASIA-PAC", 114, "hong_kong"),
+    ("Taiwan", "ASIA-PAC", 121, "taiwan taiwanese taipei"),
+    ("Mongolia", "ASIA-PAC", 105, "mongolia mongolian"),
+    ("North Korea", "ASIA-PAC", 127, "north_korea north_korean pyongyang kim_jong_un"),
+    ("South Korea", "ASIA-PAC", 128, "south_korea south_korean seoul"),
     ("Japan", "ASIA-PAC", 138, "japan japanese tokyo"),
-    ("Australia", "ASIA-PAC", 134, "australia australian sydney canberra"),
-    ("New Zealand", "ASIA-PAC", 174, "new_zealand pacific_islands"),
+    ("Australia", "ASIA-PAC", 134, "australia australian australians sydney melbourne canberra"),
+    ("New Zealand", "ASIA-PAC", 174, "new_zealand wellington auckland"),
+    ("Papua New Guinea", "ASIA-PAC", 147, "papua_new_guinea"),
+    ("Pacific Islands", "ASIA-PAC", 178, "fiji samoa tonga vanuatu solomon_islands pacific_islands"),
 ]
 
 
@@ -168,11 +300,12 @@ def _words(text):
 def _rx(word):
     if word.startswith("="):
         return ("cs", re.compile(r"(?<![A-Za-z])" + re.escape(word[1:]) + r"(?![A-Za-z])"))
-    return ("ci", re.compile(r"(?<![a-z])" + re.escape(word.lower()) + r"(?![a-z])"))
+    return ("ci", re.compile(r"(?<![a-z])" + re.escape(word.lower()) + r"s?(?![a-z])"))   # plurals count too
 
 
 CATEGORY_RX = {k: [_rx(w) for w in _words(v)] for k, v in CATEGORY_WORDS.items()}
 STRONG_RX = {k: [_rx(w) for w in _words(v)] for k, v in STRONG_WORDS.items()}
+BROAD_PLACES = {"Africa", "EU", "Pacific Islands"}
 PLACE_RX = [(name, region, lon, [_rx(w) for w in _words(words)]) for name, region, lon, words in PLACES]
 
 STOP = set("the a an and or of to in on for with at by from as is are was were be been has have had it its "
@@ -294,30 +427,64 @@ def classify_cat(title, summary, fixed=None):
     return best if scores[best] > 0 else "world"
 
 
+def _place_hits(text):
+    """{place index: (mentions, first position)} for every place named in the text. Where names overlap,
+    the longer one wins, so "South Sudan" is not also Sudan and "South Africa" is not also Africa."""
+    if not text:
+        return {}
+    low = text.lower()
+    spans = []
+    for i, (_, _, _, pats) in enumerate(PLACE_RX):
+        for kind, rx in pats:
+            for m in rx.finditer(text if kind == "cs" else low):
+                spans.append((m.start(), m.end(), i))
+    spans.sort(key=lambda s: (s[0] - s[1], s[0]))
+    taken, hits = [], {}
+    for a, b, i in spans:
+        if any(a < y and x < b for x, y in taken):
+            continue
+        taken.append((a, b))
+        n, at = hits.get(i, (0, 10**9))
+        hits[i] = (n + 1, min(at, a))
+    return hits
+
+
 def locate(title, summary, default_region=None):
-    """Return (region, place, longitude). Places named in the headline count double, and a feed that
-    covers one region (US politics, BBC Africa) gets a head start over a passing mention elsewhere."""
-    tl, sl = _low(title), _low(summary)
-    hits = []
-    for name, region, lon, pats in PLACE_RX:
-        n = 2 * _count(pats, title, tl) + _count(pats, summary or "", sl)
-        if n:
-            hits.append((name, region, lon, n, min(_first(pats, title, tl), 1000 + _first(pats, summary or "", sl))))
-    by_region = {}
-    for name, region, lon, n, at in hits:
-        n0, at0 = by_region.get(region, (0, 10**9))
-        by_region[region] = (n0 + n, min(at0, at))
-    if default_region and default_region != "GLOBAL":
-        n0, at0 = by_region.get(default_region, (0, 10**9))
-        by_region[default_region] = (n0 + 1.5, at0)
-    if not by_region:
-        return default_region or "GLOBAL", None, None
-    region = max(by_region, key=lambda r: (by_region[r][0], -by_region[r][1]))
-    placed = [h for h in hits if h[1] == region]
-    if not placed:
+    """Return (region, place, longitude).
+
+    The headline decides first: the first place it names wins, preferring places in the feed's own
+    region (US politics, BBC Africa). With nothing in the headline, the summary sets the region, but a
+    country is named only when one clearly leads; otherwise the story gets just its region."""
+    home = default_region if default_region and default_region != "GLOBAL" else None
+
+    def pick(i):
+        name, region, lon, _ = PLACE_RX[i]
+        return (region, None, None) if name in BROAD_PLACES else (region, name, lon)
+
+    head = _place_hits(title)
+    if head:
+        order = sorted(head, key=lambda i: (PLACE_RX[i][1] != home, head[i][1]))
+        return pick(order[0])
+
+    body = _place_hits(summary)
+    if not body:
+        return home or "GLOBAL", None, None
+    weight = {}
+    for i, (n, _) in body.items():
+        weight[PLACE_RX[i][1]] = weight.get(PLACE_RX[i][1], 0) + n
+    if home:
+        weight[home] = weight.get(home, 0) + 1.5
+    region = max(weight, key=weight.get)
+    if sorted(weight.values())[-2:-1] == [weight[region]]:
+        return home or "GLOBAL", None, None          # two regions tie: too unclear to place
+    inside = sorted((n, -at, i) for i, (n, at) in body.items()
+                    if PLACE_RX[i][1] == region and PLACE_RX[i][0] not in BROAD_PLACES)
+    if not inside:
         return region, None, None
-    name, _, lon, _, _ = max(placed, key=lambda h: (h[3], -h[4]))
-    return region, name, lon
+    n, _, i = inside[-1]
+    runner_up = inside[-2][0] if len(inside) > 1 else 0
+    sure = n > runner_up and (n >= 2 or (runner_up == 0 and region == home))
+    return pick(i) if sure else (region, None, None)
 
 
 OUTLET_PREFIXES = ("BBC", "Guardian", "NPR")
@@ -414,10 +581,11 @@ def build(previous=None, max_age_hours=36, per_feed=25, workers=16):
             votes[x["cat"]] = votes.get(x["cat"], 0) + (1.2 if x["fixed"] else 1.0)
         located = [x for x in items if x["region"] != "GLOBAL"]
         regions = [x["region"] for x in located] or ["GLOBAL"]
-        region = max(set(regions), key=regions.count)
+        region = max(set(regions), key=lambda r: (regions.count(r), r == lead["region"]))
         placed = [x for x in located if x["region"] == region and x["place"]]
         place_names = [x["place"] for x in placed]
-        place = max(set(place_names), key=place_names.count) if place_names else None
+        counts = sorted(((place_names.count(n), n) for n in set(place_names)), reverse=True)
+        place = counts[0][1] if counts and (len(counts) == 1 or counts[0][0] > counts[1][0]) else None
         lon = next((x["lon"] for x in placed if x["place"] == place), None)
         story = {
             "id": hashlib.sha1((lead["url"] or lead["title"]).encode()).hexdigest()[:10],

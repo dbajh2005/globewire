@@ -66,7 +66,7 @@ a{color:var(--beam)}
 
 /* the map and the reading panel */
 .seg.mswitch{display:none}
-.explore{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:20px;align-items:stretch}
+.explore{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:20px;align-items:start}
 .sky{
   border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;min-width:0;
   background:
@@ -107,9 +107,10 @@ a{color:var(--beam)}
 .desk[aria-pressed="true"]{color:var(--ink);border-color:var(--c);background:color-mix(in srgb, var(--c) 16%, transparent)}
 .desk[aria-pressed="true"] em{color:var(--dim)}
 
-.side{position:relative;min-width:0;border:1px solid var(--line);border-radius:20px;background:var(--panel)}
-.side-in{position:absolute;inset:0;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
-.side h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:.02em}
+.side{min-width:0;border:1px solid var(--line);border-radius:20px;background:var(--panel);min-height:calc(var(--stage-h) + 2px);display:flex;flex-direction:column;scroll-margin-top:16px}
+.panel-in{display:flex;flex-direction:column;gap:12px}
+.side-in{flex:1;padding:22px 24px}
+.panel-in h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:18px;letter-spacing:.02em}
 .side-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .tag{font-size:14px;font-weight:400;color:var(--faint);display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
 .tag b{font-weight:700;color:var(--c)}
@@ -118,21 +119,34 @@ a{color:var(--beam)}
 .pick{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:5px;width:100%;border-radius:12px;padding:10px;margin:-10px}
 .pick:hover{background:rgba(255,255,255,.04)}
 .pick:focus-visible{outline:2px solid var(--beam)}
-.lead .h{font-size:22px;font-weight:700;line-height:1.3;text-wrap:balance}
-.lead .s{font-size:16px;color:var(--dim)}
-.also{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
-.also .label{font-size:14px;font-weight:700;color:var(--faint);letter-spacing:.04em;text-transform:uppercase}
-.also .pick{margin:0 -10px}
-.also .h{font-size:16px;font-weight:700;line-height:1.35}
+.clamp{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+.lead .h{font-size:22px;font-weight:700;line-height:1.3;text-wrap:balance;-webkit-line-clamp:4}
+.lead .s{font-size:16px;color:var(--dim);-webkit-line-clamp:3}
+.also{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:12px}
+.also .label{font-size:14px;font-weight:700;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+.also .pick{margin:0 -10px;padding:8px 10px;gap:3px}
+.also .h{font-size:16px;font-weight:700;line-height:1.35;-webkit-line-clamp:2}
+.also .meta{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px}
+.also .meta i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.also .meta b{color:var(--c)}
+.all-link{font-weight:700;margin-top:auto;padding-top:4px}
+/* when the panel is short on room it tightens step by step instead of scrolling */
+.side-in[data-tight="1"] .lead .s{-webkit-line-clamp:2}
+.side-in[data-tight="2"] .lead .s{-webkit-line-clamp:1}
+.side-in[data-tight="3"] .lead .s,.side-in[data-tight="3"] .also .label{display:none}
 .story-top{display:flex;gap:12px;align-items:center}
 .mini{width:48px;height:48px;flex:none}
 .story-meta{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;padding-top:4px}
-.side h3{margin:0;font-size:22px;line-height:1.3;font-weight:700;text-wrap:balance}
+.panel-in h3{margin:0;font-size:22px;line-height:1.3;font-weight:700;text-wrap:balance}
+.panel-in h3:focus{outline:none}
 .sum{margin:0;font-size:17px;line-height:1.55}
 .acts{display:flex;flex-wrap:wrap;gap:8px}
 .nolink{font-size:14px;color:var(--faint);border:1px dashed var(--faint);border-radius:999px;padding:8px 14px}
 .breaking{align-self:flex-start;font-size:14px;font-weight:700;color:var(--warn);border:1px solid rgba(255,154,125,.5);background:rgba(255,154,125,.12);border-radius:999px;padding:3px 12px}
+.cover{border-radius:4px;transition:background-color .6s,box-shadow .6s}
+.cover.flash{background:rgba(139,233,255,.08);box-shadow:0 0 0 10px rgba(139,233,255,.08)}
 .cover h4{margin:0 0 4px;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.cover h4:focus{outline:none}
 .cover ul{list-style:none;margin:0;padding:0}
 .cover li{display:flex;flex-direction:column;gap:2px;padding-block:8px;border-top:1px solid var(--line)}
 .cover .expand{all:unset;cursor:pointer;color:var(--beam);font-size:15px;font-weight:700;padding:8px 0 0}
@@ -147,6 +161,16 @@ a{color:var(--beam)}
 .linkish{all:unset;cursor:pointer;font-weight:700;line-height:1.35}
 .linkish:hover{color:var(--beam)}
 .transmission{white-space:pre-wrap;border-left:2px solid var(--beam);padding-left:12px;margin:0;font-size:17px}
+
+/* reading drawer: opens beside the headline list, so reading a story never moves you away from it */
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(2,3,10,.55)}
+.drawer{
+  position:fixed;z-index:31;top:0;right:0;bottom:0;width:min(520px, calc(100vw - 48px));
+  overflow:auto;overscroll-behavior:contain;background:var(--panel);border-left:1px solid var(--line-hi);
+  box-shadow:-24px 0 60px -12px #000;animation:drawerIn .22s ease-out;
+}
+.drawer-in{padding:28px max(32px, env(safe-area-inset-right, 0px)) 40px 32px}
+@keyframes drawerIn{from{transform:translateX(32px);opacity:0}}
 
 /* headlines */
 .hl-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px}
@@ -182,12 +206,12 @@ a{color:var(--beam)}
   .story.lead-card .h{font-size:22px}
   .wrap[data-mode="map"] .headlines{display:none}
   .side{display:none}
-  .side.open{display:block;position:fixed;z-index:20;left:0;right:0;bottom:0;height:82%;border-radius:20px 20px 0 0;background:var(--panel);box-shadow:0 0 0 100vmax rgba(2,3,10,.62),0 -20px 50px -10px #000}
-  .side.open .side-in{padding:20px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px))}
+  .side.open{display:flex;position:fixed;z-index:20;left:0;right:0;bottom:0;height:82%;min-height:0;overflow:auto;overscroll-behavior:contain;border-radius:20px 20px 0 0;background:var(--panel);box-shadow:0 0 0 100vmax rgba(2,3,10,.62),0 -20px 50px -10px #000}
+  .side.open .side-in{flex:none;padding:20px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px))}
   .tremor span{display:none}
   .sector{font-size:12px;padding:2px 8px}
 }
-@media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto} }
+@media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto} .drawer{animation:none} .cover{transition:none} }
 </style>
 
 <div class="wrap" id="wrap" data-mode="map">
@@ -243,7 +267,7 @@ a{color:var(--beam)}
         <div class="toast" id="toast" aria-live="polite"></div>
       </div>
     </div>
-    <aside class="side" id="side" aria-live="polite"><div class="side-in" id="sideIn"></div></aside>
+    <aside class="side" id="side" aria-live="polite"><div class="side-in panel-in" id="sideIn"></div></aside>
   </section>
 
   <div class="filters" id="filters" role="group" aria-label="Filter map and headlines"></div>
@@ -261,6 +285,9 @@ a{color:var(--beam)}
     <p class="foot" id="foot"></p>
   </section>
 </div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden><div class="drawer-in panel-in" id="drawerIn"></div></aside>
 
 <script>
 (() => {
@@ -291,7 +318,7 @@ const $ = id => document.getElementById(id);
 
 const S = {
   mode:"demo", data:null, byId:new Map(), region:"ALL", desk:"all", sort:"latest", clips:[],
-  generated:null, confirmClear:false, view:"top", selId:null, showN:24, pending:null,
+  generated:null, confirmClear:false, view:"top", selId:null, showN:24, pending:null, drawer:false,
 };
 
 /* ---------- per-viewer storage ---------- */
@@ -326,13 +353,27 @@ function demoData(){
     ["science","EUROPE",2,900,null,"Glacier retreat doubles in a decade, survey finds","Alpine glaciers lost more ice in the past ten years than in the previous twenty."],
     ["science","ASIA-PAC",1,1320,null,"Deep-sea expedition logs dozens of possible new species","Specimens include a glass sponge and several kinds of sea cucumber."],
   ];
+  // how other sample outlets headline the same story, so the outlet comparison has something to show
+  const alts = {
+    0:["Mediators bring both sides back after night of heavy fire","Prisoner swap on agenda as border talks restart","Shelling overshadows return to ceasefire negotiations","Hours after worst fighting in weeks, envoys meet again"],
+    1:["River delta under water as monsoon forces thousands from homes","Shelters full and rail cut after delta floods"],
+    3:["Commuters stranded as rail unions walk out in three cities"],
+    5:["Budget clears parliament by eleven votes after overnight sitting","Opposition vows to fight tax changes as budget passes","Marathon session ends with budget approved"],
+    9:["Rates unchanged; policymakers want more proof inflation is easing","Central bank stands pat and sounds patient on cuts","No move on rates as officials wait for inflation data","Borrowing costs held steady for another month","Rate cut hopes pushed back as bank holds"],
+    14:["Open-weight model beats rivals on coding tests","New AI model comes with permissive licence and a laptop version","Coding benchmark crown goes to open model","Free-to-use AI model tops programming leaderboard"],
+    19:["Water vapour found on planet in habitable zone","Exoplanet 120 light years away shows signs of water","Telescope detects water in temperate planet's air"],
+  };
   return {
     app:"globewire", version:2, demo:true, generated:new Date(now).toISOString(), sources:[],
-    stories: rows.map((r, i) => ({
-      id:"demo" + i, cat:r[0], region:r[1], place:null, lon:null, signal:r[2], ts:now - r[3] * m,
-      breaking:r[4] !== null, prev_signal:r[4] || 0, breaking_from:r[4], title:r[5], summary:r[6],
-      url:"", source:"Sample wire", sources:Array.from({ length:r[2] }, (_, j) => "Sample feed " + (j + 1)), items:[],
-    })),
+    stories: rows.map((r, i) => {
+      const sources = Array.from({ length:r[2] }, (_, j) => j ? "Sample feed " + (j + 1) : "Sample wire");
+      const items = alts[i] ? [{ source:"Sample wire", title:r[5], url:"" }, ...alts[i].map((title, j) => ({ source:"Sample feed " + (j + 2), title, url:"" }))] : [];
+      return {
+        id:"demo" + i, cat:r[0], region:r[1], place:null, lon:null, signal:r[2], ts:now - r[3] * m,
+        breaking:r[4] !== null, prev_signal:r[4] || 0, breaking_from:r[4], title:r[5], summary:r[6],
+        url:"", source:"Sample wire", sources, items,
+      };
+    }),
   };
 }
 
@@ -667,7 +708,7 @@ function draw(now){
     }
   }
   if (!globeDone) drawGlobe(t);
-  if (selP) drawLink(selP, now);
+  if (selP && S.view === "story") drawLink(selP, now);
   const tipP = hover || kp;
   if (tipP) placeTip(tipP);
   loop();
@@ -719,41 +760,82 @@ stage.addEventListener("pointerleave", () => { hover = null; hideTip(); requestD
 stage.addEventListener("pointerdown", e => {
   if (e.target.closest(".flyhud,.sector,.regionchip")) return;
   const [x, y] = local(e), p = hit(x, y);
-  if (p){ stopFlyby(); select(p.s); }
+  if (p){ stopFlyby(); select(p.s, {}, { from:"map" }); }
 });
 
 /* ---------- selecting a story ---------- */
-function select(s, opts = {}){
-  S.selId = s.id; S.view = "story"; S.storyOpts = opts; S.coverAll = false; beamT0 = performance.now();
-  hover = null; hideTip(); renderSide(); renderFeed(); requestDraw(); loop();
-  if (phone()) $("sideIn").scrollTop = 0;
+const side = $("side"), sideIn = $("sideIn"), drawer = $("drawer"), drawerIn = $("drawerIn"), scrim = $("scrim");
+let returnTo = null;   // the headline that opened the drawer, so closing it lands you back there
+// The panel beside the map counts as on screen when its top edge is visible with room below it.
+function sideInView(){ const r = side.getBoundingClientRect(); return r.top >= -8 && r.top < innerHeight - 260; }
+// how: { from:"feed" | "map", trigger }. A headline picked from the list below the map opens in a
+// drawer when the panel beside the map is out of view (desktop only; phones use the bottom sheet).
+function select(s, opts = {}, how = {}){
+  S.selId = s.id; S.storyOpts = opts; S.coverAll = false; beamT0 = performance.now();
+  hover = null; hideTip();
+  if (how.from === "feed" && !phone() && !sideInView()){
+    if (S.view === "story") S.view = "top";
+    if (!S.drawer) returnTo = how.trigger ? how.trigger.dataset.story : null;
+    S.drawer = true;
+  } else {
+    hideDrawer(); S.view = "story";
+  }
+  renderSide(); renderDrawer(); renderFeed(); requestDraw(); loop();
+  if (S.drawer){ drawer.scrollTop = 0; const h = $("drawerTitle"); if (h) h.focus({ preventScroll:true }); }
+  else if (phone()) side.scrollTop = 0;
+  else if (how.from === "map" && side.getBoundingClientRect().top < 0) side.scrollIntoView({ behavior:reduce ? "auto" : "smooth", block:"start" });
+}
+function hideDrawer(){ S.drawer = false; drawer.hidden = true; scrim.hidden = true; drawerIn.innerHTML = ""; }
+function renderDrawer(){
+  if (!S.drawer) return;
+  const s = find(S.selId); if (!s){ hideDrawer(); return; }
+  drawerIn.innerHTML = renderStory(s, {}, "drawerTitle"); drawMini(drawerIn, look(s));
+  drawer.hidden = false; scrim.hidden = false;
 }
 function closePanel(){
-  S.selId = null; S.view = "top"; S.confirmClear = false;
+  const fromDrawer = S.drawer;
+  S.selId = null; S.confirmClear = false;
+  if (fromDrawer) hideDrawer(); else S.view = "top";
   renderSide(); renderFeed(); requestDraw();
+  if (fromDrawer){
+    const id = returnTo; returnTo = null;
+    const b = id && [...document.querySelectorAll("#feed [data-story]")].find(x => x.dataset.story === id);
+    if (b) b.focus({ preventScroll:true });
+  }
   if (S.pending){ const j = S.pending; S.pending = null; applyUpdate(j); }
+}
+// the container showing the open story, if any
+const storyBox = () => S.drawer ? drawerIn : S.view === "story" ? sideIn : null;
+function rerenderStory(){ if (S.drawer){ const y = drawer.scrollTop; renderDrawer(); drawer.scrollTop = y; } else renderSide(); }
+function compare(){
+  const s = find(S.selId); if (!s) return;
+  if (s.items.length > 3 && !S.coverAll){ S.coverAll = true; rerenderStory(); }
+  const box = storyBox(), c = box && box.querySelector(".cover"); if (!c) return;
+  c.scrollIntoView({ behavior:reduce ? "auto" : "smooth", block:"nearest" });
+  c.querySelector("h4").focus({ preventScroll:true });
+  c.classList.add("flash"); setTimeout(() => c.classList.remove("flash"), 900);
 }
 
 /* ---------- the reading panel ---------- */
-const side = $("side"), sideIn = $("sideIn");
-function drawMini(o){
-  const m = sideIn.querySelector(".mini"); if (!m) return;
+function drawMini(box, o){
+  const m = box.querySelector(".mini"); if (!m) return;
   const c = m.getContext("2d"); c.clearRect(0, 0, m.width, m.height);
   drawPlanet(c, m.width / 2, m.height / 2, m.width * (o.ring ? .2 : .26), o, -.55, -.6, 1, false);
 }
+// Up to three outlets are always shown in full; with more, three show until the reader asks for all.
 function coverage(s){
   if (s.items && s.items.length > 1){
-    const shown = S.coverAll ? s.items : s.items.slice(0, S.coverN || 3), more = s.items.length - shown.length;
-    return `<div class="cover" style="--c:${CAT[s.cat].c}"><h4>How each outlet tells it</h4><ul>${shown.map(i =>
+    const n = s.items.length, shown = S.coverAll || n <= 3 ? s.items : s.items.slice(0, 3);
+    return `<div class="cover" style="--c:${CAT[s.cat].c}"><h4 tabindex="-1">How each of the ${n} outlets tells it</h4><ul>${shown.map(i =>
       `<li><span class="src">${esc(i.source)}</span>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a>` : `<span>${esc(i.title)}</span>`}</li>`).join("")}</ul>
-      ${more > 0 ? `<button type="button" class="expand" data-act="coverall">Show all ${s.items.length} outlets</button>` : S.coverAll && s.items.length > (S.coverN || 3) ? `<button type="button" class="expand" data-act="coverall">Show fewer</button>` : ""}</div>`;
+      ${n > 3 ? `<button type="button" class="expand" data-act="coverall">${S.coverAll ? "Show fewer" : `Show all ${n} outlets`}</button>` : ""}</div>`;
   }
   if (s.sources && s.sources.length > 1) return `<p class="meta" style="margin:0">Also carried by ${esc(s.sources.filter(x => x !== s.source).join(", "))}</p>`;
   return "";
 }
 function renderTop(){
   const pool = visible().sort((a, b) => score(b) - score(a));
-  const lead = pool[0], rest = pool.slice(1, 3);
+  const lead = pool[0], rest = pool.slice(1, 5);   // renderSide keeps 2 to 4 of these, as many as fit
   const filtered = S.desk !== "all" || S.region !== "ALL";
   const scope = [S.desk !== "all" ? CAT[S.desk].name : "", S.region !== "ALL" ? REGION_NAME[S.region] : ""].filter(Boolean).join(" · ");
   if (!lead) return `<div class="side-head"><h2>Top stories</h2></div><p class="empty">No stories ${filtered ? "match this filter" : "yet"}.${filtered ? ` <button class="btn small quiet" type="button" data-act="clearfilters">Show everything</button>` : ""}</p>`;
@@ -764,19 +846,19 @@ function renderTop(){
     <button class="pick lead" type="button" data-story="${esc(lead.id)}" style="--c:${c.c}">
       ${tagHTML(lead)}
       ${spreading(lead) ? `<span class="breaking">${spreadText(lead)}</span>` : ""}
-      <span class="h">${esc(lead.title)}</span>
-      ${lead.summary ? `<span class="s">${esc(lead.summary)}</span>` : ""}
+      <span class="h clamp">${esc(lead.title)}</span>
+      ${lead.summary ? `<span class="s clamp">${esc(lead.summary)}</span>` : ""}
       <span class="meta">${metaLine(lead)}</span>
     </button>
     ${rest.length ? `<div class="also"><span class="label">Also moving</span>${rest.map(s => `
       <button class="pick" type="button" data-story="${esc(s.id)}" style="--c:${CAT[s.cat].c}">
-        ${tagHTML(s, spreading(s) ? `<span class="hot">· Spreading fast</span>` : "")}
-        <span class="h">${esc(s.title)}</span><span class="meta">${metaLine(s)}</span>
+        <span class="h clamp">${esc(s.title)}</span>
+        <span class="meta"><i></i><b>${CAT[s.cat].name}</b>· ${ago(s.ts)} · ${outlets(s.signal)}${spreading(s) ? ` <span class="hot">· Spreading fast</span>` : ""}</span>
       </button>`).join("")}</div>` : ""}
-    <a href="#headlines" data-act="toheadlines" style="font-weight:700;margin-top:auto">All ${pool.length} headlines ↓</a>`;
+    <a class="all-link" href="#headlines" data-act="toheadlines">All ${pool.length} headlines ↓</a>`;
 }
-function renderStory(s, opts){
-  const c = CAT[s.cat], kept = isKept(s.id);
+function renderStory(s, opts, titleId = "sideTitle"){
+  const c = CAT[s.cat], kept = isKept(s.id), n = s.items && s.items.length > 1 ? s.items.length : 0;
   return `
     <div class="side-head">
       ${opts.flyby ? `<span class="meta" style="color:var(--beam);font-weight:700">Briefing ${opts.flyby}</span>` : tagHTML(s)}
@@ -788,10 +870,11 @@ function renderStory(s, opts){
       <span class="meta">${esc(s.source)} · ${ago(s.ts)} · <b style="color:var(--ink)">${outlets(s.signal)}</b></span>
     </div>
     ${spreading(s) ? `<span class="breaking">${spreadText(s)}</span>` : ""}
-    <h3>${esc(s.title)}</h3>
+    <h3 id="${titleId}" tabindex="-1">${esc(s.title)}</h3>
     <p class="sum">${esc(s.summary || "No summary came with this story. Open the source for the full article.")}</p>
     <div class="acts">
       ${s.url ? `<a class="btn primary" href="${esc(s.url)}" target="_blank" rel="noopener">Read at ${esc(s.source)} ↗</a>` : `<span class="nolink">Sample story · no link</span>`}
+      ${n ? `<button class="btn" type="button" data-act="compare">Compare ${n} outlets ↓</button>` : ""}
       <button class="btn" type="button" data-act="keep" data-id="${esc(s.id)}">${kept ? "Saved ✓" : "Save"}</button>
     </div>
     ${coverage(s)}`;
@@ -808,25 +891,21 @@ function renderSaved(){
       <button class="btn small quiet" type="button" data-act="keep" data-id="${esc(s.id)}" aria-label="Remove from saved">Remove</button></li>`).join("")}</ul>`
     : `<p class="empty">Nothing saved yet. Open a story and press <b>Save</b> to keep it here.</p>`}`;
 }
-const overflows = () => sideIn.scrollHeight - sideIn.clientHeight > 1;
+const sky = document.querySelector(".sky");
 function renderSide(){
   const s = S.selId ? find(S.selId) : null;
-  if (S.view === "story" && !s){ S.view = "top"; S.selId = null; }
-  const html = () => S.view === "story" ? renderStory(s, S.storyOpts || {}) : S.view === "saved" ? renderSaved() : S.view === "briefing" ? renderBriefingShell() : renderTop();
+  if (S.view === "story" && !s) S.view = "top";
   side.classList.toggle("open", S.view !== "top");
-  S.coverN = 3;
-  sideIn.innerHTML = html();
-  if (!phone()){
-    // fit the panel to the map's height rather than scrolling inside it
-    if (S.view === "top"){
-      const picks = [...sideIn.querySelectorAll(".also .pick")];
-      while (overflows() && picks.length) picks.pop().remove();
-      if (!sideIn.querySelector(".also .pick")){ const also = sideIn.querySelector(".also"); if (also) also.remove(); }
-    } else if (S.view === "story" && !S.coverAll){
-      while (overflows() && S.coverN > 1){ S.coverN--; sideIn.innerHTML = html(); }
-    }
+  sideIn.innerHTML = S.view === "story" ? renderStory(s, S.storyOpts || {}) : S.view === "saved" ? renderSaved() : S.view === "briefing" ? renderBriefingShell() : renderTop();
+  // Top stories: the lead plus at least two supporting headlines, and up to four while they fit beside the map.
+  // A story or a long list simply makes the panel taller; it never scrolls inside itself.
+  delete sideIn.dataset.tight;
+  if (S.view === "top" && !phone()){
+    const over = () => side.offsetHeight > sky.offsetHeight + 1, picks = [...sideIn.querySelectorAll(".also .pick")];
+    while (picks.length > 2 && over()) picks.pop().remove();
+    for (let k = 1; k <= 3 && over(); k++) sideIn.dataset.tight = k;
   }
-  if (S.view === "story") drawMini(look(s));
+  if (S.view === "story") drawMini(sideIn, look(s));
 }
 function toggleKeep(id){
   const s = find(id); if (!s) return;
@@ -834,7 +913,8 @@ function toggleKeep(id){
   else { S.clips.unshift({ id:s.id, title:s.title, summary:s.summary, url:s.url, source:s.source, sources:s.sources, items:s.items, signal:s.signal, cat:s.cat, region:s.region, place:s.place, ts:s.ts }); toast("Saved"); }
   persist(); renderHeader(); renderFeed();
   if (S.view === "saved") renderSide();
-  else if (S.view === "story"){ const b = sideIn.querySelector('[data-act="keep"]'); if (b) b.textContent = isKept(id) ? "Saved ✓" : "Save"; }
+  const box = storyBox(), b = box && box.querySelector('[data-act="keep"]');
+  if (b) b.textContent = isKept(id) ? "Saved ✓" : "Save";
 }
 async function copySaved(){
   const text = S.clips.map(c => `• [${CAT[c.cat].name}] ${c.title}${c.url ? "\n  " + c.url : ""}`).join("\n");
@@ -925,8 +1005,10 @@ function deskButtons(){
   return [{ k:"all", name:"All topics", c:"var(--beam)" }, ...CATS].map(c =>
     `<button type="button" class="desk" data-desk="${c.k}" aria-pressed="${S.desk === c.k}" style="--c:${c.c}"><i></i>${c.name}<em>${c.k === "all" ? pool.length : pool.filter(s => s.cat === c.k).length}</em></button>`).join("");
 }
+// On wide screens the Top stories panel already features the lead, so the list is a plain index in the
+// chosen order. Phones don't show that panel, so there the top story leads the list.
 function renderFeed(){
-  const pool = visible(), lead = pool.slice().sort((a, b) => score(b) - score(a))[0];
+  const pool = visible(), lead = phone() ? pool.slice().sort((a, b) => score(b) - score(a))[0] : null;
   const list = pool.filter(s => s !== lead).sort(S.sort === "covered" ? (a, b) => b.signal - a.signal || b.ts - a.ts : (a, b) => b.ts - a.ts);
   if (lead) list.unshift(lead);
   const shown = list.slice(0, S.showN);
@@ -956,7 +1038,7 @@ function setRegion(r){ S.region = r; S.showN = 24; stopFlyby(); if (S.selId && !
 /* ---------- clicks ---------- */
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-story],[data-act],[data-desk],[data-region],[data-sort],[data-mview]"); if (!t) return;
-  if (t.dataset.story){ const s = find(t.dataset.story); if (s){ stopFlyby(); select(s); if (!phone() && t.closest(".headlines")) $("stage").scrollIntoView({ behavior:reduce ? "auto" : "smooth", block:"center" }); } return; }
+  if (t.dataset.story){ const s = find(t.dataset.story); if (s){ stopFlyby(); select(s, {}, { from:t.closest(".headlines") ? "feed" : "", trigger:t }); } return; }
   if (t.dataset.desk){ setDesk(t.dataset.desk); return; }
   if (t.dataset.region){ setRegion(S.region === t.dataset.region ? "ALL" : t.dataset.region); return; }
   if (t.dataset.sort){ S.sort = t.dataset.sort; renderFeed(); return; }
@@ -967,12 +1049,24 @@ document.addEventListener("click", e => {
   else if (a === "copy") copySaved();
   else if (a === "clear"){ if (S.confirmClear){ S.clips = []; S.confirmClear = false; persist(); renderHeader(); renderFeed(); } else S.confirmClear = true; renderSide(); }
   else if (a === "flyby") startFlyby();
-  else if (a === "coverall"){ S.coverAll = !S.coverAll; renderSide(); }
+  else if (a === "coverall"){ S.coverAll = !S.coverAll; rerenderStory(); }
+  else if (a === "compare") compare();
   else if (a === "clearfilters"){ S.desk = "all"; S.region = "ALL"; renderAll(); }
   else if (a === "toheadlines"){ e.preventDefault(); if (phone()) document.querySelector('.mswitch [data-mview="list"]').click(); document.querySelector(".headlines").scrollIntoView({ behavior:reduce ? "auto" : "smooth" }); }
 });
 $("savedBtn").addEventListener("click", () => { stopFlyby(); S.selId = null; S.view = "saved"; S.confirmClear = false; renderSide(); requestDraw(); });
 $("regionChip").addEventListener("click", () => setRegion("ALL"));
+scrim.addEventListener("click", () => closePanel());
+// keep keyboard focus inside the open drawer
+drawer.addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
+  const f = [...drawer.querySelectorAll("a[href],button:not([disabled])")]; if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+});
+// crossing the phone breakpoint: the drawer is desktop-only, so its story moves to the bottom sheet
+matchMedia("(max-width:760px)").addEventListener("change", () => { if (S.drawer){ hideDrawer(); S.view = "story"; } renderAll(); });
 $("moreBtn").addEventListener("click", () => { S.showN += 24; renderFeed(); });
 $("howBtn").addEventListener("click", e => { const how = $("how"); how.hidden = !how.hidden; e.currentTarget.setAttribute("aria-expanded", !how.hidden); e.currentTarget.textContent = how.hidden ? "How to read the map" : "Hide the guide"; });
 
@@ -980,7 +1074,8 @@ $("howBtn").addEventListener("click", e => { const how = $("how"); how.hidden = 
 document.addEventListener("keydown", e => {
   if (e.target.closest("input,select,textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
   const onBtn = e.target.closest("button,a");
-  if (e.key === "Escape"){ if (S.view !== "top"){ stopFlyby(); closePanel(); } return; }
+  if (e.key === "Escape"){ if (S.drawer || S.view !== "top"){ stopFlyby(); closePanel(); } return; }
+  if (S.drawer) return;
   const pool = planets.map((p, i) => i).filter(i => planets[i].on)
     .sort((a, b) => ((planets[a].ang + Math.PI * 1.5) % (Math.PI * 2)) - ((planets[b].ang + Math.PI * 1.5) % (Math.PI * 2)));
   if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && pool.length && !onBtn){
@@ -993,7 +1088,7 @@ document.addEventListener("keydown", e => {
 
 /* ---------- loading, live updates, news files ---------- */
 function loadSky(j, mode){
-  stopFlyby(); S.selId = null; S.view = "top"; planets = [];
+  stopFlyby(); hideDrawer(); S.selId = null; S.view = "top"; planets = [];
   setData(j, mode); layout(); renderAll();
 }
 function applyUpdate(j){
@@ -1009,7 +1104,7 @@ async function poll(){
     const r = await fetch("news.json?t=" + Date.now(), { cache:"no-store" });
     const j = await r.json();
     if (!valid(j) || j.generated === S.data.generated) return;
-    if (S.view === "story"){ S.pending = j; toast("New headlines are ready. They'll appear when you close this story."); return; }
+    if (S.view === "story" || S.drawer){ S.pending = j; toast("New headlines are ready. They'll appear when you close this story."); return; }
     applyUpdate(j);
   } catch(e){}
 }
@@ -1035,7 +1130,7 @@ async function boot(){
   loadSky(live || demoData(), live ? "live" : "demo");
   loop();
   setInterval(() => { if (S.data) renderHeader(); }, 30e3);
-  setInterval(() => { if (S.data && S.view === "top"){ layout(); requestDraw(); } }, 3 * 60e3); // stories drift outward as they age
+  setInterval(() => { if (S.data && S.view === "top" && !S.drawer){ layout(); requestDraw(); } }, 3 * 60e3); // stories drift outward as they age
   if (live) setInterval(poll, 5 * 60e3);
 }
 boot();
