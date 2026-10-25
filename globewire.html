@@ -183,6 +183,7 @@ code{font-family:var(--f-mono);font-size:.9em;color:var(--ink)}
       <div class="brand"><span class="logo">GLOBE<b>WIRE</b></span><span class="status" id="status">Scanning the sky…</span></div>
       <div class="hud-right">
         <button class="chip-region" id="regionChip" hidden></button>
+        <a class="btn small" id="tremorLink" href="tremor/" title="A seismograph of ongoing situations">Open TREMOR</a>
         <span class="clock" id="clock"></span>
       </div>
     </div>
@@ -974,6 +975,9 @@ function tickClock(){
     d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit", timeZone:"UTC" }) + " UTC";
 }
 setInterval(tickClock, 15e3); tickClock();
+
+// TREMOR sits next to GLOBEWIRE on the live site; anywhere else, point at the live copy
+if (!/\.github\.io$/.test(location.hostname)) $("tremorLink").href = "https://dbajh2005.github.io/globewire/tremor/";
 
 /* ---------- boot ---------- */
 async function boot(){
