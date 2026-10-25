@@ -32,8 +32,9 @@ The site appears at `https://<your-username>.github.io/globewire/`.
 Notes:
 
 - GitHub sometimes starts scheduled runs a few minutes late.
-- GitHub pauses scheduled workflows in a repository with no activity for 60 days. Re-enable it from the Actions tab if that happens.
+- GitHub pauses scheduled workflows in a repository with no commits for 60 days. The keep-alive below prevents that; if it ever happens anyway, use **Enable workflow** on the Actions tab.
 - If every feed fails, the run stops and the last good version stays up.
+- `.github/workflows/keepalive.yml` makes a one-line heartbeat commit once a month if nothing else was committed in the last 25 days, so GitHub never pauses the schedule.
 
 ## Run it on your own computer
 
