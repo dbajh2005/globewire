@@ -361,7 +361,8 @@ const ageH = s => (Date.now() - s.ts) / 3.6e6;
 // "Spreading fast" only while the story is on more outlets than when the jump started
 const spreadFrom = s => s.breaking_from ?? s.prev_signal ?? 0;
 const spreading = s => !!s.breaking && s.signal > spreadFrom(s);
-const score = s => s.signal * 3 + Math.max(0, 24 - ageH(s)) / 6 + (spreading(s) ? 4 : 0);
+// coverage matters, but a story's weight halves every 10 hours so today's news leads
+const score = s => (s.signal * 3 + (spreading(s) ? 4 : 0)) * Math.pow(0.5, Math.max(0, ageH(s)) / 10) + 1.5 * Math.max(0, 1 - ageH(s) / 6);
 const inRegion = s => S.region === "ALL" || s.region === S.region;
 const inDesk = s => S.desk === "all" || s.cat === S.desk;
 const visible = () => (S.data ? S.data.stories : []).filter(s => inRegion(s) && inDesk(s));

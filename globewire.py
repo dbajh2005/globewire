@@ -351,7 +351,7 @@ def load_previous(where):
 BREAKING_WINDOW_MS = 90 * 60 * 1000
 
 
-def build(previous=None, max_age_hours=48, per_feed=25, workers=16):
+def build(previous=None, max_age_hours=36, per_feed=25, workers=16):
     now = dt.datetime.now(dt.timezone.utc)
     now_ms = int(now.timestamp() * 1000)
     raw_items, sources = [], []
@@ -447,8 +447,9 @@ def build(previous=None, max_age_hours=48, per_feed=25, workers=16):
         stories.append(story)
 
     def score(s):
-        age_h = (now_ms - s["ts"]) / 3.6e6
-        return s["signal"] * 3 + max(0, 24 - age_h) / 6 + (4 if s["breaking"] else 0)
+        # coverage matters, but a story's weight halves every 10 hours so today's news leads
+        age_h = max(0, (now_ms - s["ts"]) / 3.6e6)
+        return (s["signal"] * 3 + (4 if s["breaking"] else 0)) * 0.5 ** (age_h / 10) + 1.5 * max(0, 1 - age_h / 6)
 
     stories.sort(key=score, reverse=True)
     return {
