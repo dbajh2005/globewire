@@ -51,7 +51,8 @@ FOLD_SIMILARITY = 0.25          # ...and this alike are the same development, no
 MERGE_SIMILARITY = 0.40         # two situations in one place whose key terms are this alike are one story
 NAME_SIMILARITY = 0.12          # a headline sharing an uncommon name needs only this much else in common
 PLACE_SIMILARITY = 0.20         # same place and three shared terms need only this much
-COMMON_NAME = 0.08              # a name in more than this share of the current news (Trump) links nothing
+COMMON_NAME = 0.08              # a name in more than this share of the current news links nothing...
+SPREAD_NAME = 4                 # ...nor does one running through this many recent situations (Trump)
 MERGE_WINDOW = 3 * DAY          # ...if they were active within this long of each other
 
 GENERIC = set("""
@@ -495,6 +496,13 @@ def update(news, previous, now, ai=True):
     in_news = Counter(term for st in news.get("stories", []) for term in set(toks(" ".join(i["title"] for i in (st.get("items") or [st])))))
     common = max(3, COMMON_NAME * len(news.get("stories", [])))
     names = {term for term in name_terms(titles) if in_news[term] <= common}
+    # a name that runs through many separate situations (Trump) connects too much to say they belong together
+    spread = Counter()
+    for s in situations:
+        if len(s["events"]) >= 2 and now - s["updated"] <= 3 * DAY:
+            counts = Counter(term for e in s["events"] for term in set(toks(" ".join(i["title"] for i in e["items"]))) & names)
+            spread.update(term for term, c in counts.items() if c >= 2)
+    names = {term for term in names if spread[term] < SPREAD_NAME}
 
     touched = set()
     stories = sorted(news.get("stories", []), key=lambda st: min([i.get("ts", st["ts"]) for i in st.get("items", [])] or [st["ts"]]))
