@@ -554,6 +554,45 @@ def summary_line(state):
             f"{moved} situations moved, feeds {state['feeds_ok']}/{state['feeds_total']}.")
 
 
+def health_report(state):
+    """A few short paragraphs on how well TREMOR is following the news, shown as notices on each
+    GitHub Actions run. They answer: how much history is there, are situations being followed across
+    days, and do the developments grouped under one situation belong together?"""
+    sits, now = state.get("situations") or [], state.get("now") or now_ms()
+    if not sits:
+        return []
+    day = lambda t: dt.datetime.fromtimestamp(t / 1000, dt.timezone.utc).strftime("%d %b")
+    span = lambda s: (s["events"][-1]["t"] - s["events"][0]["t"]) / DAY
+    oldest = min(s["events"][0]["t"] for s in sits)
+    multi = [s for s in sits if len(s["events"]) >= 2]
+    lines = [
+        summary_line(state),
+        f"History starts {day(oldest)} ({(now - oldest) / DAY:.1f} days).",
+        f"{len(multi)} of {len(sits)} situations have 2+ developments; "
+        f"{sum(1 for s in sits if len(s['events']) >= 3)} have 3+; "
+        f"{sum(1 for s in sits if span(s) >= 1)} were followed across 1+ day, {sum(1 for s in sits if span(s) >= 2)} across 2+ days.",
+        f"{sum(1 for s in sits if s.get('ahead'))} have dates ahead; {sum(1 for s in sits if s.get('impact'))} have people-affected figures. "
+        f"AI summaries: {'on' if state.get('ai') else 'off'}.",
+    ]
+    report = [("TREMOR health", "\n".join(lines))]
+    week = [s for s in sits if now - s["updated"] <= 7 * DAY]
+    top = sorted(week, key=lambda s: (-len(s["events"]), -max(e["m"] for e in s["events"])))[:12]
+    report.append(("TREMOR biggest situations this week", "\n".join(
+        f"{s.get('name', '?')[:70]} | {len(s['events'])} development{'s' if len(s['events']) != 1 else ''} over {span(s):.1f} days | "
+        f"up to M{max(e['m'] for e in s['events'])} | {s.get('place') or s.get('region')}" for s in top)))
+    for s in top[:4]:
+        report.append((f"TREMOR grouping check: {s.get('name', '?')[:60]}", "\n".join(
+            f"{day(e['t'])} M{e['m']} ({e['outlets']} outlets): {e['title'][:110]}" for e in s["events"][-8:])))
+    return report
+
+
+def github_notices(report):
+    """Print the report as workflow notices; GitHub shows them on the run's summary page."""
+    esc = lambda x: x.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    for title, text in report:
+        print(f"::notice title={esc(title).replace(':', '%3A').replace(',', '%2C')}::{esc(text)}")
+
+
 def serve(port, ttl):
     store = HERE / "tremor-state.json"
     lock = threading.Lock()
@@ -619,6 +658,8 @@ def main():
         news = json.loads(Path(a.news).read_text(encoding="utf-8"))
         state = update(news, previous, a.now or now_ms(), ai=not a.no_ai)
         print("TREMOR:", summary_line(state))
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            github_notices(health_report(state))
     except Exception as e:  # never take the site down: republish the last good state instead
         print(f"TREMOR update failed ({type(e).__name__}: {e}); keeping the previous state.", file=sys.stderr)
         state = previous
