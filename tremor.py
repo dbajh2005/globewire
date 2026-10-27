@@ -26,6 +26,7 @@ import re
 import sys
 import threading
 import time
+import unicodedata
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -41,8 +42,17 @@ KEEP_EVENTS = 21 * DAY          # history kept per situation
 DROP_QUIET = 14 * DAY           # a situation with no news for this long is dropped
 JOIN_WINDOW = 10 * DAY          # a new development can join a situation active this recently
 JOIN_SIMILARITY = 0.30
-MAX_SITUATIONS = 400
 MAX_EVENTS = 60
+RECENT_KEEP = 2 * DAY           # anything this recent is always kept (news.json holds 36 hours)
+SINGLE_KEEP = 3 * DAY           # a one-off story with no follow-up is dropped after this
+MAX_SITUATIONS = 1200           # safety limit; the oldest one-off stories go first
+FOLD_WINDOW = 6 * HOUR          # other outlets' headlines this soon after a development...
+FOLD_SIMILARITY = 0.25          # ...and this alike are the same development, not a new one
+MERGE_SIMILARITY = 0.40         # two situations in one place whose key terms are this alike are one story
+NAME_SIMILARITY = 0.12          # a headline sharing an uncommon name needs only this much else in common
+PLACE_SIMILARITY = 0.20         # same place and three shared terms need only this much
+COMMON_NAME = 0.08              # a name in more than this share of the current news (Trump) links nothing
+MERGE_WINDOW = 3 * DAY          # ...if they were active within this long of each other
 
 GENERIC = set("""
 says say said new news report reports reported after amid over could would will more first year years week weeks
@@ -64,7 +74,13 @@ def outlet(source):
 
 
 def words(text):
-    return re.findall(r"[A-Za-z][A-Za-z'’\-]*[A-Za-z]|[A-Za-z]", text or "")
+    """Words as written, accented letters included (Flávio, São Paulo)."""
+    return re.findall(r"[^\W\d_](?:[^\W\d_]|['’\-])*[^\W\d_]|[^\W\d_]", text or "")
+
+
+def fold_accents(w):
+    """Flávio and Flavio are the same word when matching."""
+    return "".join(c for c in unicodedata.normalize("NFKD", w) if not unicodedata.combining(c))
 
 
 def stem(w):
@@ -79,13 +95,29 @@ def stem(w):
 def toks(text):
     out = []
     for w in words(text):
-        for part in w.lower().replace("’", "'").split("-"):
+        for part in fold_accents(w.lower()).replace("’", "'").split("-"):
             part = part.strip("'")
             if part.endswith("'s"):
                 part = part[:-2]
             if len(part) > 2 and part not in STOP:
                 out.append(stem(part))
     return out
+
+
+# Words capitalised in headlines that are titles, institutions or dates, not the name of a particular story;
+# and every country, city and nationality GLOBEWIRE knows, since places are compared separately.
+TITLE_WORDS, PLACE_TERMS = set(), set()
+TITLE_WORDS.update(toks("""President Prime Minister Ministers King Queen Pope Chancellor Senator Governor Mayor General
+Secretary House Senate Congress Parliament Court Supreme Police Army Government Party Labour Republicans Democrats
+Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August
+September October November December AI"""))
+for _name, _region, _lon, _words in gw.PLACES:
+    PLACE_TERMS.update(toks(_name))
+    for _w in _words.split():
+        PLACE_TERMS.update(toks(_w.lstrip("=").replace("_", " ")))
+# GLOBEWIRE also places stories by their leaders and groups; those are names, not places
+PLACE_TERMS -= set(toks("""trump biden maduro lula milei starmer macron meloni orban lukashenko zelensky putin netanyahu
+erdogan khamenei modi xi jinping kim jong hamas hezbollah taliban houthi houthis"""))
 
 
 def now_ms():
@@ -103,7 +135,32 @@ def idf_table(docs):
     for d in docs:
         df.update(set(d))
     n = len(docs)
-    return lambda t: math.log((n + 1) / (df.get(t, 0) + 1)) + 0.5
+    idf = lambda t: math.log((n + 1) / (df.get(t, 0) + 1)) + 0.5
+    return idf
+
+
+def title_case(ws):
+    """'Senate Passes Stopgap Bill To Avert Shutdown': small common words are capitalised too."""
+    common = [w for w in ws[1:] if w.lower() in gw.STOP or w.lower() in HEADLINE_VERBS]
+    if common:
+        return sum(w[0].isupper() for w in common) > len(common) / 2
+    return sum(w[0].isupper() for w in ws[1:]) > 0.7 * (len(ws) - 1)
+
+
+def name_terms(titles):
+    """Terms written with a capital letter in the middle of sentence-case headlines: people, storms,
+    parties, companies (Lula, Boelo, Vucic, Starlink). Headlines in Title Case are skipped, since every
+    word is capitalised there. Country and city names are left out: places are compared separately."""
+    cap, seen = Counter(), Counter()
+    for title in titles:
+        ws = words(title)
+        if len(ws) < 4 or title_case(ws):
+            continue
+        for w in ws[1:]:
+            for term in toks(w):
+                seen[term] += 1
+                cap[term] += w[0].isupper()
+    return {term for term, n in seen.items() if cap[term] >= 0.6 * n} - PLACE_TERMS - TITLE_WORDS
 
 
 def vector(event, idf):
@@ -261,6 +318,12 @@ expands doubles finds completes releases leads enters breaks reaches calls cuts 
 SHORT_PLACE = {"United States": "US", "United Kingdom": "UK"}
 
 
+def looks_like_verb(w):
+    """Lower-case words ending -ed or -ing are usually verbs ("violated", "rising"), which make poor names.
+    Capitalised ones are usually names (Reading, Beijing)."""
+    return w.islower() and len(w) > 4 and (w.endswith("ed") or w.endswith("ing"))
+
+
 def heuristic_name(s):
     """A short name from the phrase that keeps coming back in the headlines."""
     titles = [i["title"] for e in s["events"][-12:] for i in e["items"]]
@@ -271,17 +334,21 @@ def heuristic_name(s):
             la, lb = a.lower(), b.lower()
             if la in STOP or lb in STOP or len(la) < 3 or len(lb) < 3 or la in HEADLINE_VERBS or lb in HEADLINE_VERBS:
                 continue
-            key = la + " " + lb
+            if looks_like_verb(a) or looks_like_verb(b):
+                continue
+            key = fold_accents(la) + " " + fold_accents(lb)
             if key not in seen:
                 seen.add(key)
                 pairs[key] += 1
-                shown.setdefault(key, a + " " + b)
+                if key not in shown or (shown[key].isascii() and not (a + b).isascii()):
+                    shown[key] = a + " " + b          # prefer the spelling with accents (Flávio over Flavio)
     place = SHORT_PLACE.get(s.get("place"), s.get("place"))
     if pairs:
         key, n = pairs.most_common(1)[0]
         if n >= 2:
             phrase = shown[key]
-            phrase = phrase[0].upper() + phrase[1:]
+            if phrase.split()[0].islower():          # "storm boelo" -> "Storm boelo", but iPhone stays iPhone
+                phrase = phrase[0].upper() + phrase[1:]
             return f"{place}: {phrase}" if place and place.lower() not in key else phrase
     # nothing repeats yet: use the best-covered headline, shortened
     lead = max(s["events"], key=lambda e: (e["outlets"], e["t"]))["title"]
@@ -291,6 +358,121 @@ def heuristic_name(s):
 def mode(values, default=None):
     values = [v for v in values if v]
     return Counter(values).most_common(1)[0][0] if values else default
+
+
+# ---------- joining a situation ----------
+
+def central_names(s, names):
+    """The names that run through a situation: in at least two of its developments (or its only one).
+    A name mentioned once in passing ("...what it means for the Amazon") doesn't pull other stories in."""
+    n = len(s["events"])
+    if s.get("_names_at") != (n, id(names)):
+        counts = Counter(term for e in s["events"] for term in set(toks(" ".join(i["title"] for i in e["items"]))) & names)
+        s["_names"], s["_names_at"] = {term for term, c in counts.items() if c >= min(2, n)}, (n, id(names))
+    return s["_names"]
+
+
+def joins(vec, place, s, names):
+    """Does a development (its headline vector and place) belong to situation s? Returns (yes, score).
+
+    Headlines about the same situation often share only a name: "Thousands without power as Storm Boelo
+    hits" and "Trains cancelled as Storm Boelo sweeps into Scotland". So besides overall similarity, a
+    shared name that runs through the situation (two, or one plus a little more in common) is enough when
+    the places agree, and so are three shared terms in the same place."""
+    keys = s.get("keys") or {}
+    shared = set(vec) & set(keys)
+    if len(shared) < 2:
+        return False, 0.0
+    sim = cosine(vec, keys)
+    same_place = not (s.get("place") and place and s["place"] != place)
+    if not same_place:
+        sim *= 0.6
+    named = len(shared & central_names(s, names)) if same_place else 0
+    placed = same_place and s.get("place") and place and len(shared) >= 3 and sim >= PLACE_SIMILARITY
+    ok = sim >= JOIN_SIMILARITY or named >= 2 or (named == 1 and sim >= NAME_SIMILARITY) or bool(placed)
+    return ok, (named, sim)
+
+
+# ---------- one development, many outlets ----------
+
+def item_key(i):
+    return i["url"] or (i["source"], i["title"])
+
+
+def absorb_event(host, e):
+    """Add another outlet's report of the same development to it."""
+    known = {item_key(i) for i in host["items"]}
+    host["items"] += [i for i in e["items"] if item_key(i) not in known]
+    host["urls"] = sorted(set(host.get("urls", [])) | set(e.get("urls", [])))
+    host["outlets"] = len({outlet(i["source"]) for i in host["items"]})
+    host["m"] = max(host["m"], e["m"], magnitude(host["items"], host.get("followup", False)))
+    host["seen"] = min(host["seen"], e["seen"])
+    host["upd"] = max(host.get("upd", 0), e.get("upd", 0))
+
+
+def fold_events(s, idf):
+    """Within one situation, headlines from other outlets that arrive within FOLD_WINDOW of a development
+    and say much the same thing are that development, carried by more outlets; they shouldn't count as new
+    developments of one outlet each. A second article from an outlet already carrying it stays separate,
+    since an outlet writing again usually has something new. Returns how many headlines were folded."""
+    out, folded = [], 0
+    for e in sorted(s["events"], key=lambda e: e["t"]):
+        v, host, best = vector(e, idf), None, FOLD_SIMILARITY
+        new_outlets = {outlet(i["source"]) for i in e["items"]}
+        for o in out[-8:]:
+            if e["t"] - o["t"] > FOLD_WINDOW or not new_outlets - {outlet(i["source"]) for i in o["items"]}:
+                continue
+            sim = cosine(v, o["_v"])
+            if sim >= best:
+                host, best = o, sim
+        if host:
+            absorb_event(host, e)
+            host["_v"] = vector(host, idf)
+            folded += 1
+        else:
+            e["_v"] = v
+            out.append(e)
+    for e in out:
+        e.pop("_v", None)
+    s["events"] = out
+    return folded
+
+
+def merge_situations(situations, now, touched, names, everything=False):
+    """A story can start twice: before an election result and after it, say, with headlines too different
+    to join at first. Two situations in the same place, active within MERGE_WINDOW of each other, are joined
+    when their key terms are mostly the same, or when the smaller would have joined the larger had it
+    arrived as a new headline (see joins). The larger keeps its id; the
+    other's id is kept as an alias so links and follows still work. Only pairs involving a situation that
+    changed this update are checked, unless everything=True. Returns the situations left and how many
+    were joined."""
+    by_place = {}
+    for s in situations:
+        if s.get("place") and now - s["updated"] <= 7 * DAY:
+            by_place.setdefault(s["place"], []).append(s)
+    gone = set()
+    for group in by_place.values():
+        group.sort(key=lambda s: (-len(s["events"]), s["created"]))
+        for i, a in enumerate(group):
+            if a["id"] in gone:
+                continue
+            for b in group[i + 1:]:
+                if b["id"] in gone or not (everything or a["id"] in touched or b["id"] in touched):
+                    continue
+                apart = max(a["created"], b["created"]) - min(a["updated"], b["updated"])
+                ka, kb = a.get("keys") or {}, b.get("keys") or {}
+                if apart > MERGE_WINDOW or len(set(ka) & set(kb)) < 3:
+                    continue
+                if cosine(ka, kb) < MERGE_SIMILARITY and not joins(kb, b.get("place"), a, names)[0]:
+                    continue
+                a["events"] = sorted(a["events"] + b["events"], key=lambda e: e["t"])
+                a["keys"] = merge_keys(ka, kb, decay=1.0)
+                a["created"] = min(a["created"], b["created"])
+                a["updated"] = max(a["updated"], b["updated"])
+                a["aliases"] = sorted(set(a.get("aliases", [])) | {b["id"]} | set(b.get("aliases", [])))
+                touched.add(a["id"])
+                gone.add(b["id"])
+    return [s for s in situations if s["id"] not in gone], len(gone)
 
 
 # ---------- the update ----------
@@ -308,8 +490,13 @@ def update(news, previous, now, ai=True):
         for e in s["events"][-5:]:
             docs.append(toks(e["title"]))
     idf = idf_table(docs)
+    titles = [i["title"] for st in news.get("stories", []) for i in (st.get("items") or [st])]
+    titles += [i["title"] for s in situations for e in s["events"][-5:] for i in e["items"]]
+    in_news = Counter(term for st in news.get("stories", []) for term in set(toks(" ".join(i["title"] for i in (st.get("items") or [st])))))
+    common = max(3, COMMON_NAME * len(news.get("stories", [])))
+    names = {term for term in name_terms(titles) if in_news[term] <= common}
 
-    touched, fresh_events = set(), 0
+    touched = set()
     stories = sorted(news.get("stories", []), key=lambda st: min([i.get("ts", st["ts"]) for i in st.get("items", [])] or [st["ts"]]))
     for st in stories:
         items = [{"source": i["source"], "title": i["title"], "url": i.get("url", ""), "ts": min(now, int(i.get("ts") or st["ts"]))}
@@ -341,17 +528,14 @@ def update(news, previous, now, ai=True):
             "cat": st.get("cat", "world"), "region": st.get("region", "GLOBAL"), "place": st.get("place"),
         }
         vec = vector(event, idf)
-        best, best_sim = None, 0.0
+        best, best_score = None, None
         for s in situations:
             if event["t"] - s["updated"] > JOIN_WINDOW:
                 continue
-            sim = cosine(vec, s.get("keys", {}))
-            if s.get("place") and event["place"] and s["place"] != event["place"]:
-                sim *= 0.6
-            shared = len(set(vec) & set(s.get("keys", {})))
-            if shared >= 2 and sim > best_sim:
-                best, best_sim = s, sim
-        if best and best_sim >= JOIN_SIMILARITY:
+            ok, score = joins(vec, event.get("place"), s, names)
+            if ok and (best_score is None or score > best_score):
+                best, best_score = s, score
+        if best:
             s = best
             event["followup"] = True
         else:
@@ -367,13 +551,30 @@ def update(news, previous, now, ai=True):
         for u in urls:
             by_url[u] = (s, event)
         touched.add(s["id"])
-        fresh_events += 1
 
-    # trim history and settle each situation's description
-    kept = []
+    # join situations that started twice, then fold other outlets' headlines into the development they report
+    first_run = bool(previous.get("situations")) and "housekeeping" not in previous   # tidy up older state once
+    situations, merged = merge_situations(situations, now, touched, names, everything=first_run)
+    folded = 0
+    for s in situations:
+        n = fold_events(s, idf)
+        if n:
+            folded += n
+            touched.add(s["id"])
+    fresh_events = sum(1 for s in situations for e in s["events"] if e["seen"] == now)
+
+    # Trim history and settle each situation's description. Anything from the last two days stays, so a story
+    # still in the news file is never dropped and re-added. Situations with follow-ups stay until they've been
+    # quiet for DROP_QUIET; one-off stories go after SINGLE_KEEP.
+    kept, dropped = [], Counter()
     for s in situations:
         s["events"] = [e for e in s["events"] if now - e["t"] <= KEEP_EVENTS][-MAX_EVENTS:]
-        if not s["events"] or now - s["events"][-1]["t"] > DROP_QUIET:
+        quiet = now - s["events"][-1]["t"] if s["events"] else None
+        if quiet is None or quiet > DROP_QUIET:
+            dropped["quiet"] += 1
+            continue
+        if len(s["events"]) == 1 and quiet > SINGLE_KEEP:
+            dropped["one_off"] += 1
             continue
         evs = s["events"]
         s["created"] = min(s.get("created", evs[0]["t"]), evs[0]["t"])
@@ -390,8 +591,11 @@ def update(news, previous, now, ai=True):
         else:
             s["ahead"] = [a for a in s.get("ahead", []) if a["t"] > now]
         kept.append(s)
-    kept.sort(key=lambda s: -s["updated"])
-    situations = kept[:MAX_SITUATIONS]
+    kept.sort(key=lambda s: (now - s["updated"] <= RECENT_KEEP, len(s["events"]) > 1, s["updated"]), reverse=True)
+    dropped["limit"] = max(0, len(kept) - MAX_SITUATIONS)
+    situations = sorted(kept[:MAX_SITUATIONS], key=lambda s: -s["updated"])
+    for s in situations:
+        s.pop("_names", None), s.pop("_names_at", None)
 
     # situations that tend to move together: related terms, same place
     active = [s for s in situations if now - s["updated"] <= 7 * DAY][:200]
@@ -412,6 +616,8 @@ def update(news, previous, now, ai=True):
         "app": "tremor", "version": 1, "generated": iso(now), "now": now,
         "feeds_ok": sum(1 for x in sources if x.get("ok")), "feeds_total": len(sources),
         "new_events": fresh_events, "ai": enriched > 0 or any(s.get("ai") for s in situations),
+        "housekeeping": {"merged": merged, "folded": folded, "dropped_quiet": dropped["quiet"],
+                         "dropped_one_off": dropped["one_off"], "dropped_limit": dropped["limit"]},
         "situations": situations,
     }
 
@@ -574,6 +780,11 @@ def health_report(state):
         f"{sum(1 for s in sits if s.get('ahead'))} have dates ahead; {sum(1 for s in sits if s.get('impact'))} have people-affected figures. "
         f"AI summaries: {'on' if state.get('ai') else 'off'}.",
     ]
+    hk = state.get("housekeeping")
+    if hk:
+        lines.append(f"This update joined {hk['merged']} split situations and folded {hk['folded']} headlines into existing "
+                     f"developments; dropped {hk['dropped_quiet']} quiet, {hk['dropped_one_off']} one-off, "
+                     f"{hk['dropped_limit']} over the limit.")
     report = [("TREMOR health", "\n".join(lines))]
     week = [s for s in sits if now - s["updated"] <= 7 * DAY]
     top = sorted(week, key=lambda s: (-len(s["events"]), -max(e["m"] for e in s["events"])))[:12]

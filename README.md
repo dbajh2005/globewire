@@ -72,13 +72,16 @@ Keep `globewire.html` next to `globewire.py`.
 
 TREMOR groups developments into situations, meaning ongoing stories followed over days, and draws each one as a seismograph trace.
 
-- **Situations, not articles.** A follow-up story joins its situation when its headlines share enough distinctive words with it.
+- **Situations, not articles.** A follow-up story joins its situation when its headlines share enough distinctive words with it, or share a name that runs through the situation (Storm Boelo, Lula). Two situations that turn out to be the same story are joined, and links to either still work.
+- **Developments, not headlines.** Other outlets' headlines on the same development, within 6 hours, are counted as one development carried by more outlets, so a big story looks big.
 - **Since you left.** Your browser remembers your last visit, and the blue line marks it. "The minute" lists only what moved since then, biggest first, and can read it aloud.
 - **Magnitude** combines how many independent outlets carry a development, how fast it spread, and whether it moved an existing situation. M4 and up shows in orange.
 - **Next tremors** are dates mentioned in the reporting that are still ahead.
 - **Blind spots** plots people affected (numbers taken from the reporting) against coverage.
 
-`tremor.py` runs after `globewire.py` in the workflow and keeps three weeks of history. Run it locally with `python3 tremor.py` and open http://localhost:8018.
+`tremor.py` runs after `globewire.py` in the workflow. A situation with follow-ups is kept until it has been quiet for 14 days; a one-off story is dropped after 3 days. Run it locally with `python3 tremor.py` and open http://localhost:8018.
+
+Each run on the Actions tab shows a short TREMOR health report under **Annotations**: how much history it holds, how many situations it has followed across days, its biggest situations, and the headlines grouped under the top four.
 
 ### Optional: AI summaries
 

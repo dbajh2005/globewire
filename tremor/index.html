@@ -264,6 +264,11 @@ function prep(){
     s.stateLine = s.aiFresh && s.ai.state ? s.ai.state : s.latest.title;
     S.byId.set(s.id, s);
   }
+  // situations that started twice get joined; old links and follows point to the joined one
+  for (const s of S.data.situations) for (const a of s.aliases || []){
+    if (!S.byId.has(a)) S.byId.set(a, s);
+    if (S.follow.has(a)){ S.follow.delete(a); S.follow.add(s.id); store.set("tremor.follow", [...S.follow]); }
+  }
   computeSince();
 }
 function computeSince(){
