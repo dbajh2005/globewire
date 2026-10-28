@@ -62,7 +62,8 @@ FEEDS = [
     ("The Hindu", None, "ASIA-PAC", "https://www.thehindu.com/news/national/feeder/default.rss"),
     ("ABC Australia", None, "ASIA-PAC", "https://www.abc.net.au/news/feed/51120/rss.xml"),
     ("Africanews", None, "AFRICA", "https://www.africanews.com/feed/rss"),
-    ("Times of Israel", None, "MIDEAST", "https://www.timesofisrael.com/feed/"),
+    ("Jerusalem Post", None, "MIDEAST", "https://www.jpost.com/rss/rssfeedsheadlines.aspx"),
+    ("The National", None, "MIDEAST", "https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml"),
     ("MercoPress", None, "AMERICAS", "https://en.mercopress.com/rss/"),
     # POLITICS
     ("BBC Politics", "politics", "EUROPE", "https://feeds.bbci.co.uk/news/politics/rss.xml"),
@@ -381,9 +382,10 @@ def parse_feed(raw):
     try:
         root = ET.fromstring(raw)
     except ET.ParseError:
-        # some feeds use HTML entities XML doesn't know (&nbsp; etc.)
+        # some feeds use HTML entities XML doesn't know (&nbsp; etc.), or have stray text after the end
         fixed = re.sub(rb"&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)", b"&amp;", raw)
-        root = ET.fromstring(fixed)
+        end = max(fixed.rfind(tag) + len(tag) if fixed.rfind(tag) >= 0 else -1 for tag in (b"</rss>", b"</feed>", b"</rdf:RDF>"))
+        root = ET.fromstring(fixed[:end] if end > 0 else fixed)
     items = []
     for el in root.iter():
         if _local(el.tag) not in ("item", "entry"):
