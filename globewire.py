@@ -24,6 +24,7 @@ import email.utils
 import hashlib
 import html
 import json
+import os
 import re
 import sys
 import threading
@@ -31,6 +32,7 @@ import time
 import urllib.request
 import webbrowser
 import xml.etree.ElementTree as ET
+from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -673,6 +675,22 @@ def page_html():
             b'</head><body>' + body + b'</body></html>')
 
 
+def sources_report(data):
+    """Where this update's news came from, shown as notices on each GitHub Actions run: each feed's
+    count (or its error), stories by region and desk, and how many stories more than one outlet carries."""
+    src, stories = data["sources"], data["stories"]
+    feeds = "\n".join(f"{s['name']}: {s.get('count', '?') if s['ok'] else 'FAILED ' + (s.get('error') or '')[:80]}"
+                      for s in sorted(src, key=lambda s: (s["ok"], -s.get("count", 0))))
+    outlets = Counter(outlet(s["name"]) for s in src if s["ok"])
+    by = lambda key: ", ".join(f"{k} {n}" for k, n in Counter(x[key] for x in stories).most_common())
+    multi = Counter(min(x["signal"], 4) for x in stories)
+    mix = (f"{len(stories)} stories from {sum(1 for s in src if s['ok'])} of {len(src)} feeds and {len(outlets)} outlets "
+           f"({', '.join(f'{o} {n}' for o, n in outlets.most_common() if n > 1)} feeds each).\n"
+           f"By region: {by('region')}.\nBy desk: {by('cat')}.\n"
+           f"Carried by 1 outlet: {multi[1]}, 2: {multi[2]}, 3: {multi[3]}, 4 or more: {multi[4]}.")
+    return [("GLOBEWIRE sources", mix), ("GLOBEWIRE feeds", feeds)]
+
+
 def build_site(out_dir, previous):
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -682,6 +700,10 @@ def build_site(out_dir, previous):
     ok = sum(1 for s in data["sources"] if s["ok"])
     hot = sum(1 for s in data["stories"] if s["breaking"])
     print(f"Site built in {out}: {ok}/{len(data['sources'])} feeds on air, {len(data['stories'])} stories, {hot} breaking.")
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        for title, text in sources_report(data):
+            esc = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print(f"::notice title={title}::{esc}")
     if ok == 0:
         sys.exit("Every feed failed, so the site was not updated.")
 
