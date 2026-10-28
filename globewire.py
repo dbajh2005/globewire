@@ -62,7 +62,6 @@ FEEDS = [
     ("The Hindu", None, "ASIA-PAC", "https://www.thehindu.com/news/national/feeder/default.rss"),
     ("ABC Australia", None, "ASIA-PAC", "https://www.abc.net.au/news/feed/51120/rss.xml"),
     ("Africanews", None, "AFRICA", "https://www.africanews.com/feed/rss"),
-    ("Jerusalem Post", None, "MIDEAST", "https://www.jpost.com/rss/rssfeedsheadlines.aspx"),
     ("The National", None, "MIDEAST", "https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml"),
     ("MercoPress", None, "AMERICAS", "https://en.mercopress.com/rss/"),
     # POLITICS

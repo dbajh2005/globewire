@@ -21,7 +21,7 @@ Click a planet and a tractor beam pulls it into the reading panel. The panel sho
 Stories come from about 40 RSS feeds from 25 outlets:
 
 - **International:** BBC, Guardian, Al Jazeera, DW, France 24, NPR, Sky News, CBS News, Euronews
-- **Based in the regions they cover:** South China Morning Post, CNA (Singapore), The Hindu (India), ABC Australia, Africanews, The Jerusalem Post, The National (UAE), MercoPress (South America)
+- **Based in the regions they cover:** South China Morning Post, CNA (Singapore), The Hindu (India), ABC Australia, Africanews, The National (UAE), MercoPress (South America)
 - **Politics, finance, tech, science:** Politico, CNBC, MarketWatch, Ars Technica, The Verge, TechCrunch, Hacker News, ScienceDaily, NASA
 
 Headlines from different outlets are matched into one story when they share enough wording, or when outlets in the same place share uncommon names (Lula, Storm Boelo) and some wording. Each run on the Actions tab lists every feed's count, or its error, under **Annotations**.
