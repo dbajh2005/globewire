@@ -29,6 +29,7 @@ import re
 import sys
 import threading
 import time
+import unicodedata
 import urllib.request
 import webbrowser
 import xml.etree.ElementTree as ET
@@ -52,6 +53,17 @@ FEEDS = [
     ("BBC Africa", "world", "AFRICA", "https://feeds.bbci.co.uk/news/world/africa/rss.xml"),
     ("BBC Latin America", "world", "AMERICAS", "https://feeds.bbci.co.uk/news/world/latin_america/rss.xml"),
     ("BBC Middle East", "world", "MIDEAST", "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml"),
+    ("Sky News", None, None, "https://feeds.skynews.com/feeds/rss/world.xml"),
+    ("CBS News", None, None, "https://www.cbsnews.com/latest/rss/world"),
+    ("Euronews", None, "EUROPE", "https://www.euronews.com/rss?level=theme&name=news"),
+    # REGIONAL VOICES: outlets based in the regions they cover
+    ("South China Morning Post", None, None, "https://www.scmp.com/rss/91/feed"),
+    ("CNA", None, "ASIA-PAC", "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml"),
+    ("The Hindu", None, "ASIA-PAC", "https://www.thehindu.com/news/national/feeder/default.rss"),
+    ("ABC Australia", None, "ASIA-PAC", "https://www.abc.net.au/news/feed/51120/rss.xml"),
+    ("Africanews", None, "AFRICA", "https://www.africanews.com/feed/rss"),
+    ("Times of Israel", None, "MIDEAST", "https://www.timesofisrael.com/feed/"),
+    ("MercoPress", None, "AMERICAS", "https://en.mercopress.com/rss/"),
     # POLITICS
     ("BBC Politics", "politics", "EUROPE", "https://feeds.bbci.co.uk/news/politics/rss.xml"),
     ("Guardian Politics", "politics", "EUROPE", "https://www.theguardian.com/politics/rss"),
@@ -497,8 +509,126 @@ def outlet(source):
     return next((p for p in OUTLET_PREFIXES if source.startswith(p)), source)
 
 
+# ---------- matching headlines from different outlets ----------
+
+WORD_RX = re.compile(r"[^\W\d_](?:[^\W\d_]|['’\-])*[^\W\d_]|[^\W\d_]|\d+")
+GENERIC = set("live update updates latest video watch report reports week year day analysis explainer".split())
+SAME_STORY_HOURS = 18           # headlines further apart than this are different stories
+COMMON_NAME = 0.03              # a name in more than this share of headlines (Trump) links nothing on its own
+
+
+def _fold(w):
+    """Vučić and Vucic are the same word."""
+    return "".join(c for c in unicodedata.normalize("NFKD", w) if not unicodedata.combining(c))
+
+
+def _stem(w):
+    """Light stemming so "votes", "voted" and "vote" match."""
+    for suffix in ("ing", "ed", "es", "s"):
+        if w.endswith(suffix) and len(w) - len(suffix) >= 4:
+            w = w[: -len(suffix)]
+            break
+    return w[:-1] if w.endswith("e") and len(w) > 4 else w
+
+
 def tokens(title):
-    return {w for w in re.findall(r"[a-z0-9']+", title.lower()) if len(w) > 2 and w not in STOP}
+    out = set()
+    for w in WORD_RX.findall(title or ""):
+        for part in _fold(w.lower()).replace("’", "'").split("-"):
+            part = part.strip("'")
+            if part.endswith("'s"):
+                part = part[:-2]
+            if len(part) > 2 and part not in STOP and part not in GENERIC:
+                out.add(_stem(part))
+    return out
+
+
+def _title_case(ws):
+    """'Senate Passes Stopgap Bill To Avert Shutdown': small common words are capitalised too."""
+    common = [w for w in ws[1:] if w.lower() in STOP]
+    if common:
+        return sum(w[0].isupper() for w in common) > len(common) / 2
+    return sum(w[0].isupper() for w in ws[1:]) > 0.7 * (len(ws) - 1)
+
+
+# Capitalised words that are titles, institutions or dates rather than the name of one story, and place
+# words (places are compared separately). Leaders and groups GLOBEWIRE uses to place stories are names.
+TITLE_WORDS = tokens("""President Prime Minister Ministers King Queen Pope Chancellor Senator Governor Mayor General
+Secretary House Senate Congress Parliament Court Supreme Police Army Government Party Labour Republicans Democrats
+Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August
+September October November December AI""")
+PLACE_TERMS = set()
+for _name, _region, _lon, _words in PLACES:
+    PLACE_TERMS |= tokens(_name)
+    for _w in _words.split():
+        PLACE_TERMS |= tokens(_w.lstrip("=").replace("_", " "))
+PLACE_TERMS -= tokens("""trump biden maduro lula milei starmer macron meloni orban lukashenko zelensky putin netanyahu
+erdogan khamenei modi xi jinping kim jong hamas hezbollah taliban houthi houthis""")
+
+
+def name_terms(titles):
+    """Terms written with a capital letter mid-headline in sentence-case headlines (Lula, Boelo, Starlink).
+    Judged across all headlines, so a name also counts in Title Case headlines that mention it."""
+    cap, seen = Counter(), Counter()
+    for title in titles:
+        ws = WORD_RX.findall(title or "")
+        if len(ws) < 4 or _title_case(ws):
+            continue
+        for w in ws[1:]:
+            for term in tokens(w):
+                seen[term] += 1
+                cap[term] += w[0].isupper()
+    return {term for term, n in seen.items() if cap[term] >= 0.6 * n} - PLACE_TERMS - TITLE_WORDS
+
+
+def same_story(a, b):
+    """Do two headlines report the same story? Different outlets word a story differently ("Lula wins
+    Brazil runoff" / "Brazil's Lula seals re-election"), so besides sharing enough words, two headlines
+    from different outlets in the same place match when they share uncommon names and some wording."""
+    if abs(a["ts"] - b["ts"]) > SAME_STORY_HOURS * 3600 * 1000:
+        return None
+    shared = a["tok"] & b["tok"]
+    if len(shared) < 2:
+        return None
+    jac = len(shared) / len(a["tok"] | b["tok"])
+    if len(shared) >= 3 and jac >= 0.30:
+        return True
+    if outlet(a["source"]) == outlet(b["source"]):
+        return False  # a second article from the same outlet is a separate story unless the wording matches
+    if a["place"] and b["place"] and a["place"] != b["place"]:
+        return False
+    named = len(shared & a["names"])
+    return (named >= 2 and jac >= 0.15) or (named == 1 and len(shared) >= 3 and jac >= 0.18)
+
+
+def cluster(items):
+    """Group headlines that report the same story. Every pair that matches is linked, and linked headlines
+    form one story, so the result doesn't depend on the order headlines arrive. Only pairs sharing a word
+    are compared."""
+    names = name_terms([x["title"] for x in items])
+    df = Counter(term for x in items for term in x["tok"])
+    names = {term for term in names if df[term] <= max(3, COMMON_NAME * len(items))}
+    for x in items:
+        x["names"] = x["tok"] & names
+    parent = list(range(len(items)))
+
+    def root(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    index = {}
+    for i, x in enumerate(items):
+        for j in {j for term in x["tok"] for j in index.get(term, ())}:
+            if root(i) != root(j) and same_story(x, items[j]):
+                parent[root(i)] = root(j)
+        for term in x["tok"]:
+            index.setdefault(term, []).append(i)
+    groups = {}
+    for i, x in enumerate(items):
+        groups.setdefault(root(i), []).append(x)
+    return [{"items": sorted(g, key=lambda x: -x["ts"]), "outlets": {outlet(x["source"]) for x in g}} for g in groups.values()]
 
 
 def load_previous(where):
@@ -520,7 +650,7 @@ def load_previous(where):
 BREAKING_WINDOW_MS = 90 * 60 * 1000
 
 
-def build(previous=None, max_age_hours=36, per_feed=25, workers=16):
+def build(previous=None, max_age_hours=36, per_feed=50, workers=16):
     now = dt.datetime.now(dt.timezone.utc)
     now_ms = int(now.timestamp() * 1000)
     raw_items, sources = [], []
@@ -546,17 +676,7 @@ def build(previous=None, max_age_hours=36, per_feed=25, workers=16):
             sources.append({"name": name, "cat": fixed_cat or "auto", "ok": err is None, "count": kept, "error": err})
 
     # merge stories several outlets carry
-    raw_items.sort(key=lambda x: -x["ts"])
-    clusters = []
-    for it in raw_items:
-        for c in clusters:
-            inter = len(it["tok"] & c["tok"])
-            union = len(it["tok"] | c["tok"]) or 1
-            if inter >= 3 and inter / union >= 0.34:
-                c["items"].append(it)
-                break
-        else:
-            clusters.append({"tok": set(it["tok"]), "items": [it]})
+    clusters = cluster(raw_items)
 
     # what the last update looked like, for breaking-news detection
     previous = previous or {}
@@ -684,8 +804,9 @@ def sources_report(data):
     outlets = Counter(outlet(s["name"]) for s in src if s["ok"])
     by = lambda key: ", ".join(f"{k} {n}" for k, n in Counter(x[key] for x in stories).most_common())
     multi = Counter(min(x["signal"], 4) for x in stories)
-    mix = (f"{len(stories)} stories from {sum(1 for s in src if s['ok'])} of {len(src)} feeds and {len(outlets)} outlets "
-           f"({', '.join(f'{o} {n}' for o, n in outlets.most_common() if n > 1)} feeds each).\n"
+    several = ", ".join(f"{o} {n}" for o, n in outlets.most_common() if n > 1)
+    mix = (f"{len(stories)} stories from {sum(1 for s in src if s['ok'])} of {len(src)} feeds and {len(outlets)} outlets"
+           f"{f' ({several} feeds each)' if several else ''}.\n"
            f"By region: {by('region')}.\nBy desk: {by('cat')}.\n"
            f"Carried by 1 outlet: {multi[1]}, 2: {multi[2]}, 3: {multi[3]}, 4 or more: {multi[4]}.")
     return [("GLOBEWIRE sources", mix), ("GLOBEWIRE feeds", feeds)]

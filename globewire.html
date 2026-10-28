@@ -1023,8 +1023,8 @@ function renderFeed(){
   const more = $("moreBtn");
   more.hidden = list.length <= S.showN; more.textContent = `Show ${Math.min(24, list.length - S.showN)} more`;
   $("foot").innerHTML = S.mode === "live"
-    ? "Headlines come from about 30 news feeds and refresh every 15 minutes. Stories that several outlets carry are merged into one."
-    : "These are sample stories. The live site shows real headlines from about 30 news feeds. To use your own, save a news file with <code>python3 globewire.py --export news.json</code> and load it here.";
+    ? "Headlines come from about 40 news feeds from 25 outlets and refresh every 15 minutes. Stories that several outlets carry are merged into one."
+    : "These are sample stories. The live site shows real headlines from about 40 news feeds. To use your own, save a news file with <code>python3 globewire.py --export news.json</code> and load it here.";
   document.querySelectorAll("[data-sort]").forEach(b => b.setAttribute("aria-pressed", b.dataset.sort === S.sort));
 }
 function renderFilters(){

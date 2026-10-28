@@ -18,7 +18,13 @@ World news on a radar around Earth. Every story is a planet:
 
 Click a planet and a tractor beam pulls it into the reading panel. The panel shows each outlet's own headline for that story. The **60-second flyby** pulls in the top story from each desk against a countdown. Click a region on the rim to show only that part of the world. The **star chart** below the sky lists everything as plain text.
 
-Stories come from about 30 RSS feeds: BBC, Guardian, Al Jazeera, DW, France 24, NPR, Politico, CNBC, MarketWatch, Ars Technica, The Verge, TechCrunch, Hacker News, ScienceDaily, NASA and more.
+Stories come from about 40 RSS feeds from 25 outlets:
+
+- **International:** BBC, Guardian, Al Jazeera, DW, France 24, NPR, Sky News, CBS News, Euronews
+- **Based in the regions they cover:** South China Morning Post, CNA (Singapore), The Hindu (India), ABC Australia, Africanews, Times of Israel, MercoPress (South America)
+- **Politics, finance, tech, science:** Politico, CNBC, MarketWatch, Ars Technica, The Verge, TechCrunch, Hacker News, ScienceDaily, NASA
+
+Headlines from different outlets are matched into one story when they share enough wording, or when outlets in the same place share uncommon names (Lula, Storm Boelo) and some wording. Each run on the Actions tab lists every feed's count, or its error, under **Annotations**.
 
 ## The live site
 
