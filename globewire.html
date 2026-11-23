@@ -784,6 +784,7 @@ function select(s, opts = {}, how = {}){
   if (S.drawer){ drawer.scrollTop = 0; const h = $("drawerTitle"); if (h) h.focus({ preventScroll:true }); }
   else if (phone()) side.scrollTop = 0;
   else if (how.from === "map" && side.getBoundingClientRect().top < 0) side.scrollIntoView({ behavior:reduce ? "auto" : "smooth", block:"start" });
+  armIdle();
 }
 function hideDrawer(){ S.drawer = false; drawer.hidden = true; scrim.hidden = true; drawerIn.innerHTML = ""; }
 function renderDrawer(){
@@ -802,10 +803,35 @@ function closePanel(){
     const b = id && [...document.querySelectorAll("#feed [data-story]")].find(x => x.dataset.story === id);
     if (b) b.focus({ preventScroll:true });
   }
+  armIdle();   // nothing open now, so this just clears the timer
   if (S.pending){ const j = S.pending; S.pending = null; applyUpdate(j); }
 }
 // the container showing the open story, if any
 const storyBox = () => S.drawer ? drawerIn : S.view === "story" ? sideIn : null;
+
+/* ---------- an open story closes itself after 5 minutes without activity ---------- */
+// Leaving a story open also holds back live updates, so an unattended page returns to Top stories
+// and shows the latest headlines. Any pointer, key, wheel, touch or scroll activity restarts the clock.
+const IDLE_CLOSE_MS = 5 * 60e3;
+let idleT = 0, idleArmedAt = 0;
+const storyOpen = () => S.drawer || S.view === "story";
+function armIdle(){
+  clearTimeout(idleT); idleT = 0;
+  if (!storyOpen()) return;
+  idleArmedAt = Date.now();
+  idleT = setTimeout(idleClose, IDLE_CLOSE_MS);
+}
+function idleClose(){
+  idleT = 0;
+  if (!storyOpen()) return;
+  if (F.on && !F.done && !F.paused) return armIdle();   // a running briefing finishes on its own
+  const hadUpdate = !!S.pending;
+  stopFlyby(); closePanel();
+  if (!hadUpdate) toast("Story closed after 5 minutes without activity");
+}
+for (const ev of ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"]){
+  addEventListener(ev, () => { if (storyOpen() && Date.now() - idleArmedAt > 3000) armIdle(); }, { passive:true, capture:true });
+}
 function rerenderStory(){ if (S.drawer){ const y = drawer.scrollTop; renderDrawer(); drawer.scrollTop = y; } else renderSide(); }
 function compare(){
   const s = find(S.selId); if (!s) return;
